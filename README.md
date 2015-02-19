@@ -1,0 +1,1 @@
+# SamsonPHP Gallery application lesson
