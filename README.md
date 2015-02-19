@@ -26,7 +26,7 @@ So lets change our default module to ```gallery``` -> ```->start('gallery')```. 
 /** Gallery universal controller */
 function gallery__HANDLER()
 {
-   // Call our lsit controller
+   // Call our list controller
    gallery_list();
 }
 ```
@@ -35,7 +35,7 @@ Here we created universal gallery controller which will handle empty url and ren
 ##Creating and manipulating views
 Ok, now we need to start showing something in our list, lets create gallery folder in our views folder ```/www/app/view/gallery```. We need to view files:
 * ```/www/app/view/gallery/index.php``` - Main gallery view, will be used to show all items
-* ```/www/app/view/gallery/item.php``` - Signle gallery item view, shows one gallery item
+* ```/www/app/view/gallery/item.php``` - Single gallery item view, shows one gallery item
 
 ###Gallery index view ```/www/app/view/gallery/index.php```
 ```php
@@ -48,19 +48,23 @@ We have created HTML ul block with class ```gallery``` and have used special vie
 ###Gallery item view ```/www/app/view/gallery/item.php```
 ```php
 <li>
- <img src="<?php iv('image_src')?>" alt="<?php iv('image_name')?>"
+ <img src="<?php iv('image_Src')?>" alt="<?php iv('image_Name')?>"
 </li>
 ```
 We have created HTML li block and defined to output two image parameters:
-* ```image_src``` - Path to image
-* ```image_name``` - Image string name
+* ```image_Src``` - Path to image
+* ```image_Name``` - Image string name
 
 ## Passing parameters to view and rendering subviews
-Now we need to render everything, application template has build in [SamsonPHP ActiveRecord](https://github.com/samsonos/php_activerecord) support, so lets create ```gallery``` table with:
-* ```gallery_id``` - Primary, Autoincrement identifier field
-* ```name``` - varchar(255), image name
-* ```src``` - varchar(255), path to image 
-After table creation, when you reload your, all the ActiveRecord classes would be automatically created in ```/www/app/cache/db/...``` folders and you can just use them without any additional line of your code, so lets change our list controller action:
+Now we need to render everything, application template has build in [SamsonPHP ActiveRecord](https://github.com/samsonos/php_activerecord) support. In your DB you already  have ```gallery``` table with:
+* ```PhotoID``` - Primary, Autoincrement identifier field
+* ```Name``` - varchar(255), image name
+* ```Src``` - varchar(255), path to image
+* ```size``` - int(11), size of uploaded image
+* ```Loaded``` - timestamp, CURRENT_TIMESTAMP by default
+
+If you want to create new table you need to after table creation and reload your project, all the ActiveRecord classes would be automatically created in ```/www/app/cache/db/...``` folders and you can just use them without any additional line of your code.
+So lets change our list controller action:
 ```php 
 /** Gallery images list controller action */
 function gallery_list()
@@ -84,7 +88,7 @@ function gallery_list()
 }
 ```
 
-Now you must add database object manually to your ```gallery``` table, and see whata will be outputed on your projects main page.
+Now you must add database object manually to your ```gallery``` table, and see what will be outputted on your projects main page.
 
 ##Uploading images
 Now we need ability to load images without interacting with database manually, we need to:
@@ -115,19 +119,19 @@ function gallery_form($id = null)
    }
 
    // Set view file, title and pass, if it os set, found gallery item
-   m()->view('gallery/form')->title('Gallerty form')->image($dbItem);
+   m()->view('gallery/form')->title('Gallery form')->image($dbItem);
 }
 ```
 Now we need to create gallery form view file:
 ```php 
 <form action="<?php url_base('gallery','save')?>" method="post">
- <input type="hidden" name="id" value="<?php iv('image_id')?>">
- <input name="name" value="<?php iv('image_name')?>">
- <input type="file" name="file" value="<?php iv('image_src')?>">
+ <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
+ <input name="name" value="<?php iv('image_Name')?>">
+ <input type="file" name="file" value="<?php iv('image_Src')?>">
  <input type="submit" value="Save!">
 </form>
 ```
-Point your attention to ```<form action="..."``` attribute, this is route which must handle form submition, also we have used for the first time special shortcut ```url_base```, which will always generate correct url for you. The first field in our form is ```hidden``` and storing image db identifier, using this field we will understand if this is a new item or existing one.
+Point your attention to ```<form action="..."``` attribute, this is route which must handle form submition. The first field in our form is ```hidden``` and storing image db identifier, using this field we will understand if this is a new item or existing one.
 
 ###Storing form data
 As we specified in our form. we must handle ```gallery/save``` route to receive form data, lets create gallery ```save``` controller action:
@@ -138,48 +142,58 @@ As we specified in our form. we must handle ```gallery/save``` route to receive 
  */
 function gallery_save()
 {
-   // If we have really received form data
-   if (isset($_POST)) {
-     
-     /*@var \samson\activerecord\gallery $dbItem */
-     $dbItem = null;
-     
-     // Clear received variable
-     $id = isset($_POST['id']) ? filter_var($_POST['id']) : null;
+    // If we have really received form data
+    if (isset($_POST)) {
 
-     /*
-      * Try to recieve one first record from DB by identifier,
-      * in case of success store record into $dbItem variable,
-      * otherwise create new gallery item
-      */
-      if (!dbQuery('gallery')->id($id)->first($dbItem)) {
-         // Create new instance but without creating a db record
-         $dbItem = new \samson\activerecord\gallery(false);
-      }
+        /** @var \samson\activerecord\gallery $dbItem */
+        $dbItem = null;
 
-      // At this point we can guarantee that $dbItem is not empty
+        // Clear received variable
+        $id = isset($_POST['id']) ? filter_var($_POST['id']) : null;
 
-      $tmp_name = $_FILES["file"]["tmp_name"];
-      $name = $_FILES["file"]["name"];
+        /*
+         * Try to receive one first record from DB by identifier,
+         * in case of success store record into $dbItem variable,
+         * otherwise create new gallery item
+         */
+        if (!dbQuery('gallery')->id($id)->first($dbItem)) {
+            // Create new instance but without creating a db record
+            $dbItem = new \samson\activerecord\gallery(false);
+        }
 
-      // Create upload dir with correct rights
-      if (!file_exists('upload')) {
-          mkdir('upload', 0775);
-      }
-
-      $src = 'upload/'.$name;
-
-      // If file has been created
-      if (move_uploaded_file($tmp_name, $src)) {
         // Save image name
-        $dbItem->name = filter_var($_POST['name']);
-        // Store file in upload dir
-        $dbItem->src = $src;
-      }
-   }
+        $dbItem->Name = filter_var($_POST['name']);
+        $dbItem->save();
 
-   // Redirect to main page
-   url()->redirect();
+        // At this point we can guarantee that $dbItem is not empty
+        if (isset($_FILES['file']['tmp_name']) && $_FILES['file']['tmp_name'] != null) {
+            $tmp_name = $_FILES["file"]["tmp_name"];
+            $name = $_FILES["file"]["name"];
+
+            // Create upload dir with correct rights
+            if (!file_exists('upload')) {
+                mkdir('upload', 0775);
+            }
+
+            // Set the unique name for uploaded files
+            $src = 'upload/' . md5(time() . $name);
+
+            // If file has been created
+            if (move_uploaded_file($tmp_name, $src)) {
+                // Store file in upload dir
+                $dbItem->Src = $src;
+                $dbItem->size = $_FILES["file"]["name"];
+                $dbItem->Name = $name;
+                // Save image
+                $dbItem->save();
+            }
+
+        }
+
+    }
+
+    // Redirect to main page
+    url()->redirect();
 }
 ```
 
@@ -197,10 +211,13 @@ We will create ```delete``` controller action ```gallery/delete/{id}``` in ```/w
  */
 function gallery_delete($id)
 {
-    /*@var \samson\activerecord\gallery $dbItem */
+    /** @var \samson\activerecord\gallery $dbItem */
     $dbItem = null;
     if (dbQuery('gallery')->id($id)->first($dbItem)) {
-       $dbItem->delete();
+        // Delete uploaded file
+        unlink($dbItem->Src);
+        // Delete DB record about this file
+        $dbItem->delete();
     }
 
     // Go to main page
@@ -209,14 +226,111 @@ function gallery_delete($id)
 ```
 
 ###Editing gallery item
-We have already implemented this in our ```gallery/save``` controller action, we just need to modify our ```gallery/item``` view
-to add needed buttons(```/www/app/view/galley/item.php```):
+We need to modify our ```gallery/item``` view to add needed buttons(```/www/app/view/galley/item.php```):
 ```php
 <li>
- <img src="<?php iv('image_src')?>" alt="<?php iv('image_name')?>"
- <a class="btn edit" href="<?php url('gallery', 'delete', 'image_id')?>"
- <a class="btn delete" href="<?php url('gallery', 'form', 'image_id')?>"
+  <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
+  <a class="btn edit" href="<?php  url_base('gallery', 'form', 'image_PhotoID')?>">Редактировать</a>
+  <a class="btn delete" href="<?php url_base('gallery', 'delete', 'image_PhotoID')?>">Удалить</a>
 </li>
+```
+
+Now we have to improve our ```gallery/form``` controller action, to edit existing file. For this purpose we have to create new view to interact with image we get from DB.
+Let's call it ```form.php```. We have to load selected image, some information about it and a form to edit this image, which is exactly the same as in ```gallery/index.php```.
+```php
+<div id="item">
+    <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
+    <p>Name: <?php iv('image_Name')?></p>
+    <p>Size: <?php iv('image_size')?></p>
+    <p>Loaded: <?php iv('image_Loaded')?></p>
+
+</div>
+
+
+<form action="<?php url_base('gallery','save')?>" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
+    <input name="name" value="<?php iv('image_Name')?>">
+    <input type="file" name="file" value="<?php iv('image_Src')?>">
+    <input type="submit" value="Save!">
+</form>
+
+<a href="/">Назад</a>
+```
+
+In our ```gallery/form``` controller we have to render view ```form.php``` if someone called this action with ```id```` parameter.
+
+```php
+/**
+ * Gallery form controller action
+ * @var string $id Item identifier
+ */
+function gallery_form($id = null)
+{
+    /*@var \samson\activerecord\gallery $dbItem */
+    $dbItem = null;
+    /*
+     * Try to recieve one first record from DB by identifier,
+     * if $id == null the request will fail anyway, and in case
+     * of success store record into $dbItem variable
+     */
+
+    if (dbQuery('gallery')->id($id)->first($dbItem)) {
+        // Render the form to redact item
+        m()->view('gallery/form')->title('Redact form')->image($dbItem);
+    }
+
+     m()->view('gallery/form')->title('Gallerty form')->image($dbItem);
+}
+```
+
+In case to prevent errors when somebody will try to access not existing image we have to render another view. Since this just another view of this module it's better to create ```www/app/view/gallery/form``` folder and place our ```gallery/form.php``` view in this folder and call it ```index.php```. Than Create a new view ```gallery/form/notfoundID.php```.
+
+```php
+<p>Запись не найдена.</p>
+
+<a href="/">Назад</a>
+```
+If someone tries to access this controller without passing any ```id``` we should view a form to upload new photo. So we have to create another view for this controller ```/www/app/view/gallery/form/newfile.php```.
+```php
+<p>Добавтьб новое фото</p>
+
+<form action="<?php url_base('gallery', 'save')?>" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
+    <input name="name" value="<?php iv('image_Name')?>">
+    <input type="file" name="file" value="<?php iv('image_Src')?>">
+    <input type="submit" value="Save!">
+</form>
+
+<a href="/">Назад</a>
+```
+
+Now we have to improve our controller ``gallery/form``` so that it could show all this views in case they are needed.
+```php
+/**
+ * Gallery form controller action
+ * @var string $id Item identifier
+ */
+function gallery_form($id = null)
+{
+    /*@var \samson\activerecord\gallery $dbItem */
+    $dbItem = null;
+    /*
+     * Try to recieve one first record from DB by identifier,
+     * if $id == null the request will fail anyway, and in case
+     * of success store record into $dbItem variable
+     */
+
+    if (dbQuery('gallery')->id($id)->first($dbItem)) {
+        // Render the form to redact item
+        m()->view('gallery/form/index')->title('Redact form')->image($dbItem);
+    } elseif (isset($id)) {
+        // File with passed ID wasn't find in DB
+        m()->view('gallery/form/notfoundID')->title('Not Found');
+    } else {
+        // No ID was passed
+        m()->view('gallery/form/newfile')->title('New Photo');
+    }
+}
 ```
 
 ##Sorting gallery list
@@ -265,15 +379,16 @@ function gallery_list($sorter = null, $direction = 'ASC')
 Also we need to add this new sorter buttons to our main gallery index view ```/www/app/view/gallery/index.php```
 ```php
 <div class="sorter">
-    <a href="<?php url_base('gallery', 'list', 'date', 'asc')?>">DATE ASC</a>
-    <a href="<?php url_base('gallery', 'list', 'date', 'desc')?>">DATE DESC</a>
-    <a href="<?php url_base('gallery', 'list', 'size', 'asc')?>">SIZE ASC</a>
-    <a href="<?php url_base('gallery', 'list', 'size', 'desc')?>">SIZE DESC</a>
+    <a href="<?php url_base('gallery', 'list', 'Loaded', 'ASC')?>">DATE ASC</a>
+    <a href="<?php url_base('gallery', 'list', 'Loaded', 'DESC')?>">DATE DESC</a>
+    <a href="<?php url_base('gallery', 'list', 'size', 'ASC')?>">SIZE ASC</a>
+    <a href="<?php url_base('gallery', 'list', 'size', 'DESC')?>">SIZE DESC</a>
 </div>
 <ul class="gallery">
  <?php iv('items')?>
 </ul>
 ```
+We have used for the first time special shortcut ```url_base```, which will always generate correct url for you.
 
 But what about saving our state of sorter, what if we have realoded page, our went to home page,
 do we still want for our sorting order to be the same - YES! For this we need to store our sorter
@@ -283,15 +398,43 @@ in ```$_SESSION```, lets modify ```/www/app/controller/gallery.php```:
 function gallery_list($sorter = null, $direction = 'ASC')
 {
     // If no sorter is passed
-    if(!isset($sorter)) {
+    if (!isset($sorter)) {
         // Load sorter from session if it is there
         $sorter = isset($_SESSION['sorter']) ? $_SESSION['sorter'] : null;
         $direction = isset($_SESSION['direction']) ? $_SESSION['direction'] : null;
     }
 
-    // Store sorting in a session
-    $_SESSION['sorter'] = $sorter;
-    $_SESSION['direction'] = $direction;
-    ...
+    // Rendered HTML gallery items
+    $items = '';
+
+    // Prepare db query object
+    $query = dbQuery('gallery');
+
+    // If sorter is passed
+
+    if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
+        // Add sorting condition to db request
+        $query->order_by($sorter, $direction);
+
+        // Store sorting in a session
+        $_SESSION['sorter'] = $sorter;
+        $_SESSION['direction'] = $direction;
+    }
+
+    // Iterate all records from "gallery" table
+    foreach ($query->exec() as $dbItem) {
+        /**@var \samson\activerecord\gallery $dbItem``` */
+
+        /*
+         *   Render view(output method) and pass object received fron DB and
+         * prefix all its fields with "image_", return and gather this outputs
+         * in $items
+         */
+        $items .= m()->view('gallery/item')->image($dbItem)->output();
+    }
+
+    /* Set window title and view to render, pass items variable to view */
+    m()->view('gallery/index')->title('My gallery')->items($items);
+}
 ```
 

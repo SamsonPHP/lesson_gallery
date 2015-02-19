@@ -1,5 +1,4 @@
 
-
 <div id="item">
     <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
     <p>Name: <?php iv('image_Name')?></p>
@@ -15,4 +14,6 @@
     <input type="file" name="file" value="<?php iv('image_Src')?>">
     <input type="submit" value="Save!">
 </form>
+
+<a href="/">Назад</a>
 
