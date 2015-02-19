@@ -333,6 +333,22 @@ function gallery_form($id = null)
 }
 ```
 
+Now when we created a separated view for adding a new photo it's better to remove form from ```gallery/index.php``` and attach a link to this form instead.
+```php
+
+<a href="/gallery/form/">Добавить фото</a>
+
+<div class="sorter">
+    <a href="<?php url_base('gallery', 'list', 'Loaded', 'ASC')?>">DATE ASC</a>
+    <a href="<?php url_base('gallery', 'list', 'Loaded', 'DESC')?>">DATE DESC</a>
+    <a href="<?php url_base('gallery', 'list', 'size', 'ASC')?>">SIZE ASC</a>
+    <a href="<?php url_base('gallery', 'list', 'size', 'DESC')?>">SIZE DESC</a>
+</div>
+<ul class="gallery">
+    <?php iv('items')?>
+</ul>
+```
+
 ##Sorting gallery list
 Another very useful and commonly used feature is sorting, lets add this feature to our gallery ```list``` controller action,
 first we need to create two parameters, lets imagine that we have two criteria for sorting:
