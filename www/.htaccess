@@ -1,0 +1,20 @@
+AddDefaultCharset utf-8
+
+RewriteEngine On
+
+# Remove www from domain 
+RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+RewriteRule ^(.*)$ http://%1/$1 [R=301,L]
+
+# Without slash redirect to slash
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_URI} !(.*)/$
+RewriteRule ^(.*)$ http://%{HTTP_HOST}/$1/ [L,R=301]
+
+# Redirect index.php to /
+RewriteCond %{THE_REQUEST} ^.*/index\.php 
+RewriteRule ^(.*)index.php$ /$1 [R=301,L] 
+
+# Redirect all requests to init script
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]
