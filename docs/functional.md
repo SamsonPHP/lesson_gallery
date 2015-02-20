@@ -4,7 +4,7 @@ We consider that you have successfully created [samsonos/htmlapp project](https:
 ##Creating gallery module controller
 First of all you should create ```www/app/controller/gallery.php```, with your first gallery controller action ```list```, which will be accessible via url: ```/gallery/list```:
 
-```php 
+```php
 /** Gallery images list controller action */
 function gallery_list()
 {
@@ -69,7 +69,7 @@ Now we need to render everything, application template has build in [SamsonPHP A
 
 If you want to create new table you need to after table creation and reload your project, all the ActiveRecord classes would be automatically created in ```/www/app/cache/db/...``` folders and you can just use them without any additional line of your code.
 So lets change our list controller action:
-```php 
+```php
 /** Gallery images list controller action */
 function gallery_list()
 {
@@ -79,7 +79,7 @@ function gallery_list()
     // Iterate all records from "gallery" table
     foreach (dbQuery('gallery')->exec() as $dbItem) {
        /**@var \samson\activerecord\gallery $dbItem``` */
-       
+
        /* Render view(output method) and pass object received fron DB and
         * prefix all its fields with "image_", return and gather this outputs
         * in $items
@@ -105,15 +105,15 @@ We need to add new controller action ```form``` to our gallery controller file `
 * Editing existing item if identifier is passed
 
 ```php
-/** 
- * Gallery form controller action 
+/**
+ * Gallery form controller action
  * @var string $id Item identifier
  */
 function gallery_form($id = null)
 {
    /*@var \samson\activerecord\gallery $dbItem */
    $dbItem = null;
-   /* 
+   /*
     * Try to recieve one first record from DB by identifier,
     * if $id == null the request will fail anyway, and in case
     * of success store record into $dbItem variable
@@ -127,7 +127,7 @@ function gallery_form($id = null)
 }
 ```
 Now we need to create gallery form view file:
-```php 
+```php
 <form action="<?php url_base('gallery','save')?>" method="post">
  <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
  <input name="name" value="<?php iv('image_Name')?>">
@@ -140,8 +140,8 @@ Point your attention to ```<form action="..."``` attribute, this is route which 
 ###Storing form data
 As we specified in our form. we must handle ```gallery/save``` route to receive form data, lets create gallery ```save``` controller action:
 ```php
-/** 
- * Gallery form controller action 
+/**
+ * Gallery form controller action
  * @var string $id Item identifier
  */
 function gallery_save()
