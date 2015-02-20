@@ -48,12 +48,16 @@ We have created HTML ul block with class ```gallery``` and have used special vie
 ###Gallery item view ```/www/app/view/gallery/item.php```
 ```php
 <li>
- <img src="<?php iv('image_Src')?>" alt="<?php iv('image_Name')?>"
+    <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
+    <span><?php iv('image_Loaded') ?></span>
+    <span><?php iv('image_size') ?></span>
 </li>
 ```
-We have created HTML li block and defined to output two image parameters:
+We have created HTML li block and defined to output 4 image parameters:
 * ```image_Src``` - Path to image
 * ```image_Name``` - Image string name
+* ```image_Loaded``` - When was it loaded
+* ```image_size``` - Image size
 
 ## Passing parameters to view and rendering subviews
 Now we need to render everything, application template has build in [SamsonPHP ActiveRecord](https://github.com/samsonos/php_activerecord) support. In your DB you already  have ```gallery``` table with:
@@ -229,16 +233,21 @@ function gallery_delete($id)
 We need to modify our ```gallery/item``` view to add needed buttons(```/www/app/view/galley/item.php```):
 ```php
 <li>
-  <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
-  <a class="btn edit" href="<?php  url_base('gallery', 'form', 'image_PhotoID')?>">Редактировать</a>
-  <a class="btn delete" href="<?php url_base('gallery', 'delete', 'image_PhotoID')?>">Удалить</a>
+    <a class="btn delete" href="<?php url_base('gallery', 'delete', 'image_PhotoID')?>">X</a>
+    <a href="<?php  url_base('gallery', 'form', 'image_PhotoID')?>">
+        <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
+    </a>
+    <a class="btn edit" href="<?php  url_base('gallery', 'form', 'image_PhotoID')?>">Edit</a>
+    <span><?php iv('image_Loaded') ?></span>
+    <span><?php iv('image_size') ?></span>
 </li>
 ```
 
 Now we have to improve our ```gallery/form``` controller action, to edit existing file. For this purpose we have to create new view to interact with image we get from DB.
-Let's call it ```form.php```. We have to load selected image, some information about it and a form to edit this image, which is exactly the same as in ```gallery/index.php```.
+Let's call it ```form.php```. We have to load selected image, some information about it and a form to edit this image.
 ```php
 <div id="item">
+    <a class="btn delete" href="<?php url_base('gallery', 'delete', 'image_PhotoID')?>">X</a>
     <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
     <p>Name: <?php iv('image_Name')?></p>
     <p>Size: <?php iv('image_size')?></p>
@@ -246,15 +255,15 @@ Let's call it ```form.php```. We have to load selected image, some information a
 
 </div>
 
-
-<form action="<?php url_base('gallery','save')?>" method="post" enctype="multipart/form-data">
+<div class="upload_form">
+    <a href="/">Back to gallery</a>
+    <form action="<?php url_base('gallery','save')?>" method="post" enctype="multipart/form-data">
     <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
-    <input name="name" value="<?php iv('image_Name')?>">
+    New name: <input name="name" value="<?php iv('image_Name')?>">
     <input type="file" name="file" value="<?php iv('image_Src')?>">
     <input type="submit" value="Save!">
 </form>
-
-<a href="/">Назад</a>
+</div>
 ```
 
 In our ```gallery/form``` controller we have to render view ```form.php``` if someone called this action with ```id```` parameter.
@@ -286,22 +295,21 @@ function gallery_form($id = null)
 In case to prevent errors when somebody will try to access not existing image we have to render another view. Since this just another view of this module it's better to create ```www/app/view/gallery/form``` folder and place our ```gallery/form.php``` view in this folder and call it ```index.php```. Than Create a new view ```gallery/form/notfoundID.php```.
 
 ```php
-<p>Запись не найдена.</p>
-
-<a href="/">Назад</a>
+<div class="upload_form">
+    <p>Item not found!
+        <a href="/">Back to gallery</a></p>
+</div>
 ```
 If someone tries to access this controller without passing any ```id``` we should view a form to upload new photo. So we have to create another view for this controller ```/www/app/view/gallery/form/newfile.php```.
 ```php
-<p>Добавтьб новое фото</p>
-
-<form action="<?php url_base('gallery', 'save')?>" method="post" enctype="multipart/form-data">
-    <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
-    <input name="name" value="<?php iv('image_Name')?>">
-    <input type="file" name="file" value="<?php iv('image_Src')?>">
-    <input type="submit" value="Save!">
-</form>
-
-<a href="/">Назад</a>
+<div class="upload_form">
+    <a href="/">Back to gallery</a>
+    <form action="<?php url_base('gallery', 'save')?>" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
+        <input type="file" name="file" value="<?php iv('image_Src')?>">
+        <input type="submit" value="Save!">
+    </form>
+</div>
 ```
 
 Now we have to improve our controller ``gallery/form``` so that it could show all this views in case they are needed.
@@ -336,18 +344,14 @@ function gallery_form($id = null)
 Now when we created a separated view for adding a new photo it's better to remove form from ```gallery/index.php``` and attach a link to this form instead.
 ```php
 
-<a href="/gallery/form/">Добавить фото</a>
-
-<div class="sorter">
-    <a href="<?php url_base('gallery', 'list', 'Loaded', 'ASC')?>">DATE ASC</a>
-    <a href="<?php url_base('gallery', 'list', 'Loaded', 'DESC')?>">DATE DESC</a>
-    <a href="<?php url_base('gallery', 'list', 'size', 'ASC')?>">SIZE ASC</a>
-    <a href="<?php url_base('gallery', 'list', 'size', 'DESC')?>">SIZE DESC</a>
+<div class="top_menu">
+    <a href="<?php url_base('gallery', 'form')?>">Upload photo</a>
 </div>
 <ul class="gallery">
     <?php iv('items')?>
 </ul>
 ```
+We have used for the first time special shortcut ```url_base```, which will always generate correct url for you.
 
 ##Sorting gallery list
 Another very useful and commonly used feature is sorting, lets add this feature to our gallery ```list``` controller action,
@@ -394,17 +398,18 @@ function gallery_list($sorter = null, $direction = 'ASC')
 
 Also we need to add this new sorter buttons to our main gallery index view ```/www/app/view/gallery/index.php```
 ```php
-<div class="sorter">
-    <a href="<?php url_base('gallery', 'list', 'Loaded', 'ASC')?>">DATE ASC</a>
-    <a href="<?php url_base('gallery', 'list', 'Loaded', 'DESC')?>">DATE DESC</a>
-    <a href="<?php url_base('gallery', 'list', 'size', 'ASC')?>">SIZE ASC</a>
-    <a href="<?php url_base('gallery', 'list', 'size', 'DESC')?>">SIZE DESC</a>
+<div class="top_menu">
+    <a href="<?php url_base('gallery', 'form')?>">Upload photo</a>
+        Sort by:
+    <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'ASC')?>">DATE ASC</a>
+    <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'DESC')?>">DATE DESC</a>
+    <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'ASC')?>">SIZE ASC</a>
+    <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'DESC')?>">SIZE DESC</a>
 </div>
 <ul class="gallery">
  <?php iv('items')?>
 </ul>
 ```
-We have used for the first time special shortcut ```url_base```, which will always generate correct url for you.
 
 But what about saving our state of sorter, what if we have realoded page, our went to home page,
 do we still want for our sorting order to be the same - YES! For this we need to store our sorter

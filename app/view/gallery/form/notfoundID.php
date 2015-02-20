@@ -1,3 +1,4 @@
-<p>Запись не найдена.</p>
-
-<a href="/">Назад</a>
+<div class="upload_form">
+    <p>Item not found!
+        <a href="/">Back to gallery</a></p>
+</div>
