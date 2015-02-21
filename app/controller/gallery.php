@@ -1,7 +1,7 @@
 <?php
 
 /** Gallery images list controller action */
-function gallery_list($sorter = null, $direction = 'ASC')
+function gallery_list($sorter = null, $direction = 'ASC', $current_page = null, $page_size=4)
 {
     // If no sorter is passed
     if (!isset($sorter)) {
@@ -10,14 +10,42 @@ function gallery_list($sorter = null, $direction = 'ASC')
         $direction = isset($_SESSION['direction']) ? $_SESSION['direction'] : null;
     }
 
+    if (!isset($current_page)) {
+        // Load current page from session if it is there
+        $current_page = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
+    }
+
     // Rendered HTML gallery items
     $items = '';
 
     // Prepare db query object
     $query = dbQuery('gallery');
 
-    // If sorter is passed
 
+    // Set the prefix for pager
+    $url_prefix = "gallery/list/".$sorter."/".$direction."/";
+    // Count the number of images in query
+    $rows_count = $query->count();
+
+    if (isset($current_page)) {
+        // If we don't want to show all images
+        if ($current_page != 0) {
+            // Set the limit condition to db request
+            $query->limit(($current_page - 1) * $page_size, $page_size);
+            // Create a new instance of Pager
+            $pager = new \samson\pager\Pager($current_page, $page_size, $url_prefix, $rows_count);
+        } else {
+            // Set the page size to leave Pager in the same condition
+            $page_size = 4;
+            $pager = new \samson\pager\Pager($current_page, $page_size, $url_prefix, $rows_count);
+        }
+        // Store current psge in a session
+        $_SESSION['current_page'] = $current_page;
+        // Create the output of Pager
+        $pages = $pager->toHtml();
+    }
+
+    // If sorter is passed
     if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
         // Add sorting condition to db request
         $query->order_by($sorter, $direction);
@@ -39,8 +67,8 @@ function gallery_list($sorter = null, $direction = 'ASC')
         $items .= m()->view('gallery/item')->image($dbItem)->output();
     }
 
-    /* Set window title and view to render, pass items variable to view */
-    m()->view('gallery/index')->title('My gallery')->items($items);
+    /* Set window title and view to render, pass items variable to view, pass pager variable to view*/
+    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pages);
 }
 
 /** Gallery universal controller */
@@ -121,7 +149,7 @@ function gallery_save()
             if (move_uploaded_file($tmp_name, $src)) {
                 // Store file in upload dir
                 $dbItem->Src = $src;
-                $dbItem->size = $_FILES["file"]["name"];
+                $dbItem->size = $_FILES["file"]["size"];
                 $dbItem->Name = $name;
                 // Save image
                 $dbItem->save();
