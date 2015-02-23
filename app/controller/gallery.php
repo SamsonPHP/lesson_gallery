@@ -1,7 +1,7 @@
 <?php
 
 /** Gallery images list controller action */
-function gallery_list($sorter = null, $direction = 'ASC')
+function gallery_list($sorter = null, $direction = 'ASC', $currentPage = null, $pageSize=4)
 {
     // If no sorter is passed
     if (!isset($sorter)) {
@@ -10,14 +10,32 @@ function gallery_list($sorter = null, $direction = 'ASC')
         $direction = isset($_SESSION['direction']) ? $_SESSION['direction'] : null;
     }
 
+    if (!isset($currentPage)) {
+        // Load current page from session if it is there
+        $currentPage = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
+    }
+
     // Rendered HTML gallery items
     $items = '';
 
     // Prepare db query object
     $query = dbQuery('gallery');
 
-    // If sorter is passed
+    // Set the prefix for pager
+    $urlPrefix = "gallery/list/".$sorter."/".$direction."/";
+    // Count the number of images in query
+    $rowsCount = $query->count();
 
+    // Create a new instance of Pager
+    $pager = new \samson\pager\Pager($currentPage, $pageSize, $urlPrefix, $rowsCount);
+
+    // Set the limit condition to db request
+    $query->limit($pager->start, $pager->end);
+
+    // Store current page in a session
+    $_SESSION['current_page'] = $currentPage;
+
+    // If sorter is passed
     if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
         // Add sorting condition to db request
         $query->order_by($sorter, $direction);
@@ -32,15 +50,15 @@ function gallery_list($sorter = null, $direction = 'ASC')
         /**@var \samson\activerecord\gallery $dbItem``` */
 
         /*
-         *   Render view(output method) and pass object received fron DB and
+         * Render view(output method) and pass object received fron DB and
          * prefix all its fields with "image_", return and gather this outputs
          * in $items
          */
         $items .= m()->view('gallery/item')->image($dbItem)->output();
     }
 
-    /* Set window title and view to render, pass items variable to view */
-    m()->view('gallery/index')->title('My gallery')->items($items);
+    /* Set window title and view to render, pass items variable to view, pass the Pager to view*/
+    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager);
 }
 
 /** Gallery universal controller */
@@ -121,7 +139,7 @@ function gallery_save()
             if (move_uploaded_file($tmp_name, $src)) {
                 // Store file in upload dir
                 $dbItem->Src = $src;
-                $dbItem->size = $_FILES["file"]["name"];
+                $dbItem->size = $_FILES["file"]["size"];
                 $dbItem->Name = $name;
                 // Save image
                 $dbItem->save();
