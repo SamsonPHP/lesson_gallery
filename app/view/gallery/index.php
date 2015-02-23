@@ -6,7 +6,7 @@
     <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'DESC')?>">DATE DESC</a>
     <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'ASC')?>">SIZE ASC</a>
     <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'DESC')?>">SIZE DESC</a>
-    <ul id="pager"><?php iv('pager')?></ul>
+    <ul id="pager"><?php iv('pager_html')?></ul>
 </div>
 <ul class="gallery">
     <?php iv('items')?>

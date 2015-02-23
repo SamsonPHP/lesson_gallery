@@ -9,7 +9,7 @@ namespace samsonphp;
 /** ActiveRecord configuration entity  */
 class ActiveRecordConfig extends \samsonphp\config\Entity
 {
-    public $name 	= 'name';
-    public $login 	= 'login';
-    public $pwd 	= 'password';
+    public $name 	= 'zyablitskiy';
+    public $login 	= 'zyablitskiy';
+    public $pwd 	= 'Fuck456';
 }

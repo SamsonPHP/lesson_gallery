@@ -1,7 +1,7 @@
 <?php
 
 /** Gallery images list controller action */
-function gallery_list($sorter = null, $direction = 'ASC', $current_page = null, $page_size=4)
+function gallery_list($sorter = null, $direction = 'ASC', $currentPage = null, $pageSize=4)
 {
     // If no sorter is passed
     if (!isset($sorter)) {
@@ -10,9 +10,9 @@ function gallery_list($sorter = null, $direction = 'ASC', $current_page = null, 
         $direction = isset($_SESSION['direction']) ? $_SESSION['direction'] : null;
     }
 
-    if (!isset($current_page)) {
+    if (!isset($currentPage)) {
         // Load current page from session if it is there
-        $current_page = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
+        $currentPage = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
     }
 
     // Rendered HTML gallery items
@@ -21,29 +21,19 @@ function gallery_list($sorter = null, $direction = 'ASC', $current_page = null, 
     // Prepare db query object
     $query = dbQuery('gallery');
 
-
     // Set the prefix for pager
-    $url_prefix = "gallery/list/".$sorter."/".$direction."/";
+    $urlPrefix = "gallery/list/".$sorter."/".$direction."/";
     // Count the number of images in query
-    $rows_count = $query->count();
+    $rowsCount = $query->count();
 
-    if (isset($current_page)) {
-        // If we don't want to show all images
-        if ($current_page != 0) {
-            // Set the limit condition to db request
-            $query->limit(($current_page - 1) * $page_size, $page_size);
-            // Create a new instance of Pager
-            $pager = new \samson\pager\Pager($current_page, $page_size, $url_prefix, $rows_count);
-        } else {
-            // Set the page size to leave Pager in the same condition
-            $page_size = 4;
-            $pager = new \samson\pager\Pager($current_page, $page_size, $url_prefix, $rows_count);
-        }
-        // Store current psge in a session
-        $_SESSION['current_page'] = $current_page;
-        // Create the output of Pager
-        $pages = $pager->toHtml();
-    }
+    // Create a new instance of Pager
+    $pager = new \samson\pager\Pager($currentPage, $pageSize, $urlPrefix, $rowsCount);
+
+    // Set the limit condition to db request
+    $query->limit($pager->start, $pager->end);
+
+    // Store current page in a session
+    $_SESSION['current_page'] = $currentPage;
 
     // If sorter is passed
     if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
@@ -60,15 +50,15 @@ function gallery_list($sorter = null, $direction = 'ASC', $current_page = null, 
         /**@var \samson\activerecord\gallery $dbItem``` */
 
         /*
-         *   Render view(output method) and pass object received fron DB and
+         * Render view(output method) and pass object received fron DB and
          * prefix all its fields with "image_", return and gather this outputs
          * in $items
          */
         $items .= m()->view('gallery/item')->image($dbItem)->output();
     }
 
-    /* Set window title and view to render, pass items variable to view, pass pager variable to view*/
-    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pages);
+    /* Set window title and view to render, pass items variable to view, pass the Pager to view*/
+    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager);
 }
 
 /** Gallery universal controller */

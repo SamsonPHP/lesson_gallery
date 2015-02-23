@@ -15,12 +15,18 @@ Now reload your project and you will have all required dependencies  installed.
 We have to improve our ```gallery_list``` controller so he would be able get listing parameters for our new module.
 ```php
 /** Gallery images list controller action */
-function gallery_list($sorter = null, $direction = 'ASC', $current_page = null, $page_size=4)
+function gallery_list($sorter = null, $direction = 'ASC', $currentPage = null, $pageSize=4)
 {
+    // If no sorter is passed
+    if (!isset($sorter)) {
+        // Load sorter from session if it is there
+        $sorter = isset($_SESSION['sorter']) ? $_SESSION['sorter'] : null;
+        $direction = isset($_SESSION['direction']) ? $_SESSION['direction'] : null;
+    }
 
-    if (!isset($current_page)) {
+    if (!isset($currentPage)) {
         // Load current page from session if it is there
-        $current_page = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
+        $currentPage = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
     }
 
     // Rendered HTML gallery items
@@ -29,36 +35,28 @@ function gallery_list($sorter = null, $direction = 'ASC', $current_page = null, 
     // Prepare db query object
     $query = dbQuery('gallery');
 
-
     // Set the prefix for pager
-    $url_prefix = "gallery/list/".$sorter."/".$direction."/";
+    $urlPrefix = "gallery/list/".$sorter."/".$direction."/";
     // Count the number of images in query
-    $rows_count = $query->count();
+    $rowsCount = $query->count();
 
-    if (isset($current_page)) {
-        // If we don't want to show all images
-        if ($current_page != 0) {
-            // Set the limit condition to db request
-            $query->limit(($current_page - 1) * $page_size, $page_size);
-            // Create a new instance of Pager
-            $pager = new \samson\pager\Pager($current_page, $page_size, $url_prefix, $rows_count);
-        } else {
-            // Set the page size to leave Pager in the same condition
-            $page_size = 4;
-            $pager = new \samson\pager\Pager($current_page, $page_size, $url_prefix, $rows_count);
-        }
-        // Store current psge in a session
-        $_SESSION['current_page'] = $current_page;
-        // Create the output of Pager
-        $pages = $pager->toHtml();
-    }
+    // Create a new instance of Pager
+    $pager = new \samson\pager\Pager($currentPage, $pageSize, $urlPrefix, $rowsCount);
+
+    // Set the limit condition to db request
+    $query->limit($pager->start, $pager->end);
+
+    // Store current page in a session
+    $_SESSION['current_page'] = $currentPage;
+
     ...
-    /* Set window title and view to render, pass items variable to view, pass pager variable to view*/
-    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pages);
+
+    /* Set window title and view to render, pass items variable to view, pass the Pager to view*/
+    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager);
 }
 ```
 
-Now we have to improve the ```gallery/index``` view to get the Pager on our page. All wee need is to add something like this ```<?php iv('pager')?>``` where ever you wish to load pager.
+Now we have to improve the ```gallery/index``` view to get the Pager on our page. All wee need is to add something like this ```<?php iv('pager_html')?>```, where ```pager``` - variable we set the controller and ```_html`` - prefix we use to call method ```toView()``` from a Pager.
 We will place it wright after the sorting buttons.
 ```php
 <div class="top_menu">
@@ -68,6 +66,6 @@ We will place it wright after the sorting buttons.
     <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'DESC')?>">DATE DESC</a>
     <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'ASC')?>">SIZE ASC</a>
     <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'DESC')?>">SIZE DESC</a>
-    <ul id="pager"><?php iv('pager')?></ul>
+    <ul id="pager"><?php iv('pager_html')?></ul>
 </div>
 ```
