@@ -11,6 +11,7 @@ function gallery_list()
     /** Set window title and view to render */
     m()->title('My gallery')->view('gallery/index');
 }
+
 ```
 
 In this controller action example we have received current module object using ```m()``` method which is actually a shortcut for ```s()->module()```, where ```s()``` is shortcut for receiving current ```samson\core\Core``` object instance.
@@ -186,7 +187,7 @@ function gallery_save()
             if (move_uploaded_file($tmp_name, $src)) {
                 // Store file in upload dir
                 $dbItem->Src = $src;
-                $dbItem->size = $_FILES["file"]["name"];
+                $dbItem->size = $_FILES["file"]["size"];
                 $dbItem->Name = $name;
                 // Save image
                 $dbItem->save();
@@ -199,6 +200,7 @@ function gallery_save()
     // Redirect to main page
     url()->redirect();
 }
+
 ```
 
 ##Manipulating gallery item

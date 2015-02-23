@@ -186,7 +186,7 @@ function gallery_save()
             if (move_uploaded_file($tmp_name, $src)) {
                 // Store file in upload dir
                 $dbItem->Src = $src;
-                $dbItem->size = $_FILES["file"]["name"];
+                $dbItem->size = $_FILES["file"]["size"];
                 $dbItem->Name = $name;
                 // Save image
                 $dbItem->save();
