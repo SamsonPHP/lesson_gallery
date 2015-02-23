@@ -26,8 +26,14 @@
   border-radius: 15px;
   display: block;
   margin: 13px 30%;
-  width: 560px;
+  width: 600px;
   background-color: #e3ffd4;
+
+  #line2{
+    ul {
+      display: inline-block;
+    }
+  }
 
   #pager{
     margin-left: 30%;
@@ -90,7 +96,7 @@ input{
   border-radius: 15px;
   display: block;
   margin: 13px 33%;
-  width: 381px;
+  width: 440px;
   background-color: #e3ffd4;
   a{
     border-radius: 8px;
@@ -103,3 +109,22 @@ input{
     border-radius: 10px;
   }
 }
+
+.i18n-list {/* Locale block parent */
+
+   li {/* Locale block container */
+     display: inline-block;
+
+     /** Current active locale class */
+     &.i18n-active {
+       a{
+         background-color: yellowgreen;
+       }
+     }
+
+     /** Default locale inner text block class */
+     &.i18n-locale-en a:before { content:"EN"; }
+     /** Supported locale inner text block classes */
+     &.i18n-locale-ru a:before { content:"RU"; }
+   }
+ }
