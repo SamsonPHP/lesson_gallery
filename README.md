@@ -11,6 +11,7 @@ function gallery_list()
     /** Set window title and view to render */
     m()->title('My gallery')->view('gallery/index');
 }
+
 ```
 
 In this controller action example we have received current module object using ```m()``` method which is actually a shortcut for ```s()->module()```, where ```s()``` is shortcut for receiving current ```samson\core\Core``` object instance.
