@@ -1,5 +1,5 @@
 #Creating Gallery application
-We consider that you have successfully created [samsonos/htmlapp project](https://github.com/samsonos/htmlapp) project and get it running without any errors and notices.
+This is the beginning of Gallery application lesson. If you want to follow this lesson please come back to [main page](../../)
 
 ##Creating gallery module controller
 First of all you should create ```www/app/controller/gallery.php```, with your first gallery controller action ```list```, which will be accessible via url: ```/gallery/list```:
