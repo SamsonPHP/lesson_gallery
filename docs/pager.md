@@ -15,7 +15,7 @@ Now reload your project and you will have all required dependencies  installed.
 We have to improve our ```gallery_list``` controller so he would be able get listing parameters for our new module.
 ```php
 /** Gallery images list controller action */
-function gallery_list($sorter = null, $direction = 'ASC', $currentPage = null, $pageSize=4)
+function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize=4)
 {
     // If no sorter is passed
     if (!isset($sorter)) {
@@ -26,7 +26,7 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = null, $
 
     if (!isset($currentPage)) {
         // Load current page from session if it is there
-        $currentPage = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
+                $currentPage = isset($_SESSION['SamsonPager_current_page']) ? $_SESSION['SamsonPager_current_page'] : 1;
     }
 
     // Rendered HTML gallery items
@@ -46,26 +46,23 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = null, $
     // Set the limit condition to db request
     $query->limit($pager->start, $pager->end);
 
-    // Store current page in a session
-    $_SESSION['current_page'] = $currentPage;
-
     ...
 
     /* Set window title and view to render, pass items variable to view, pass the Pager to view*/
-    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager);
+    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager)->current_page($currentPage);;
 }
 ```
 
-Now we have to improve the ```gallery/index``` view to get the Pager on our page. All wee need is to add something like this ```<?php iv('pager_html')?>```, where ```pager``` - variable we set the controller and ```_html`` - prefix we use to call method ```toView()``` from a Pager.
-We will place it wright after the sorting buttons.
+Now we have to improve the ```gallery/index``` view to get the Pager on our page. All wee need is to add something like this ```<?php iv('pager_html')?>```, where ```pager``` - variable we set the controller and ```_html`` - prefix we use to call method ```toView()``` from a Pager. We will place it wright after the sorting buttons. Also we have to add current page to the sorting requests.
+
 ```php
 <div class="top_menu">
     <a href="<?php url_base('gallery', 'form')?>">Upload photo</a>
         Sort by:
-    <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'ASC')?>">DATE ASC</a>
-    <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'DESC')?>">DATE DESC</a>
-    <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'ASC')?>">SIZE ASC</a>
-    <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'DESC')?>">SIZE DESC</a>
+    <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'ASC', 'current_page')?>">DATE ASC</a>
+    <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'DESC', 'current_page')?>">DATE DESC</a>
+    <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'ASC', 'current_page')?>">SIZE ASC</a>
+    <a class="sorter" href="<?php url_base('gallery', 'list', 'size', 'DESC', 'current_page')?>">SIZE DESC</a>
     <ul id="pager"><?php iv('pager_html')?></ul>
 </div>
 ```

@@ -12,7 +12,7 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
 
     if (!isset($currentPage)) {
         // Load current page from session if it is there
-        $currentPage = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
+        $currentPage = isset($_SESSION['SamsonPager_current_page']) ? $_SESSION['SamsonPager_current_page'] : 1;
     }
 
     // Rendered HTML gallery items
@@ -32,9 +32,6 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
     // Set the limit condition to db request
     $query->limit($pager->start, $pager->end);
 
-    // Store current page in a session
-    $_SESSION['current_page'] = $currentPage;
-
     // If sorter is passed
     if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
         // Add sorting condition to db request
@@ -46,6 +43,7 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
     }
 
     // Iterate all records from "gallery" table
+    $items = '';
     foreach ($query->exec() as $dbItem) {
         /**@var \samson\activerecord\gallery $dbItem``` */
 
@@ -57,8 +55,9 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
         $items .= m()->view('gallery/item')->image($dbItem)->output();
     }
 
-    /* Set window title and view to render, pass items variable to view, pass the Pager to view*/
-    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager);
+
+    /* Set window title and view to render, pass items variable to view, pass the Pager and current page to view*/
+    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager)->current_page($currentPage);
 }
 
 /** Gallery universal controller */
@@ -67,6 +66,7 @@ function gallery__HANDLER()
     // Call our lsit controller
     gallery_list();
 }
+
 
 /**
  * Gallery form controller action
