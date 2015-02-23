@@ -200,6 +200,7 @@ function gallery_save()
     // Redirect to main page
     url()->redirect();
 }
+
 ```
 
 ##Manipulating gallery item
