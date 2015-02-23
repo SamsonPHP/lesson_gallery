@@ -13,22 +13,11 @@ return array(
 		"Back to gallery"	=>	"Обратно к галерее",
 		"Save"	=>	"Сохранить",
 		"New name"	=>	"Новое имя",
-		"Compress"	=>	"",		
-		"Compress with debug"	=>	"",		
-),	
-		"en"	=>array(		
-		"Delete"	=>	"",		
-		"Edit"	=>	"",		
-		"Upload photo"	=>	"",		
-		"Sort by:"	=>	"",		
-		"Date"	=>	"",		
-		"Size"	=>	"",		
-		"Item not found!"	=>	"",		
-		"Back to gallery"	=>	"",		
-		"Save"	=>	"",		
-		"New name"	=>	"",		
-		"Compress"	=>	"",		
-		"Compress with debug"	=>	"",		
-),	
-);
+            "All" => "Все",
+    ),
+		"en"	=>array(
+            "Все" => "All",
+
+    ),
+    );
 }
