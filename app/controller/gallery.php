@@ -1,7 +1,7 @@
 <?php
 
 /** Gallery images list controller action */
-function gallery_list($sorter = null, $direction = 'ASC', $currentPage = null, $pageSize=4)
+function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize=4)
 {
     // If no sorter is passed
     if (!isset($sorter)) {
