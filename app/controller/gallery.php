@@ -3,6 +3,26 @@
 /** Gallery images list controller action */
 function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize=4)
 {
+
+    $gallery = gallery_async_list($sorter, $direction, $currentPage, $pageSize);
+
+    /* Set window title and view to render, pass items variable to view, pass the Pager and current page to view*/
+    m()->view('gallery/index')->title('My gallery')->gallery_list($gallery['list'])->gallery_sorter($gallery['sorter'])->pager_html($gallery['pager']);
+}
+
+/** Gallery universal controller */
+function gallery__HANDLER()
+{
+    // Call our lsit controller
+    gallery_list();
+}
+
+/** Gallery images list asynchronous controller action */
+function gallery_async_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize=4)
+{
+    // Set the $result['status'] to 1 to provide asynchronous functionality
+    $result = array('status' => 1);
+
     // If no sorter is passed
     if (!isset($sorter)) {
         // Load sorter from session if it is there
@@ -12,11 +32,8 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
 
     if (!isset($currentPage)) {
         // Load current page from session if it is there
-        $currentPage = isset($_SESSION['current_page']) ? $_SESSION['current_page'] : 1;
+        $currentPage = isset($_SESSION['SamsonPager_current_page']) ? $_SESSION['SamsonPager_current_page'] : 1;
     }
-
-    // Rendered HTML gallery items
-    $items = '';
 
     // Prepare db query object
     $query = dbQuery('gallery');
@@ -32,10 +49,6 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
     // Set the limit condition to db request
     $query->limit($pager->start, $pager->end);
 
-    // Store current page in a session
-    $_SESSION['current_page'] = $currentPage;
-
-    // If sorter is passed
     if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
         // Add sorting condition to db request
         $query->order_by($sorter, $direction);
@@ -46,6 +59,7 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
     }
 
     // Iterate all records from "gallery" table
+    $items = '';
     foreach ($query->exec() as $dbItem) {
         /**@var \samson\activerecord\gallery $dbItem``` */
 
@@ -54,52 +68,55 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
          * prefix all its fields with "image_", return and gather this outputs
          * in $items
          */
-        $items .= m()->view('gallery/item')->image($dbItem)->output();
+        $items .= m()->view('gallery/item')->image($dbItem)->sorter($sorter)->direction($direction)->current_page($currentPage)->output();
     }
 
-    /* Set window title and view to render, pass items variable to view, pass the Pager to view*/
-    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager);
-}
+    // Include the data about images in the result array
+    $result['list'] = m()->view('gallery/list')->items($items)->output();
+    // Include the data about Pager state in the result array
+    $result['pager'] = $pager->toHTML();
+    // Include the data about sorter links state in the result array
+    $result['sorter'] = m()->view('gallery/sorter')->current_page($currentPage)->output();
 
-/** Gallery universal controller */
-function gallery__HANDLER()
-{
-    // Call our lsit controller
-    gallery_list();
+    return $result;
 }
 
 /**
  * Gallery form controller action
  * @var string $id Item identifier
  */
-function gallery_form($id = null)
+function gallery_async_form($id = null)
 {
-    /*@var \samson\activerecord\gallery $dbItem */
+    $result = array('status' => 1);
+
+    /**@var \samson\activerecord\gallery $dbItem */
     $dbItem = null;
     /*
      * Try to recieve one first record from DB by identifier,
      * if $id == null the request will fail anyway, and in case
      * of success store record into $dbItem variable
      */
-
     if (dbQuery('gallery')->id($id)->first($dbItem)) {
+        $form = m()->view('gallery/form/newfile')->image($dbItem)->output();
         // Render the form to redact item
-        m()->view('gallery/form/index')->title('Redact form')->image($dbItem);
+        $result['form'] = m()->view('gallery/form/index')->title('Redact form')->image($dbItem)->form($form)->output();
     } elseif (isset($id)) {
         // File with passed ID wasn't find in DB
-        m()->view('gallery/form/notfoundID')->title('Not Found');
+        $result['form'] = m()->view('gallery/form/notfoundID')->title('Not Found')->output();
     } else {
         // No ID was passed
-        m()->view('gallery/form/newfile')->title('New Photo');
+        $result['form'] = m()->view('gallery/form/newfile')->title('New Photo')->output();
     }
+    return $result;
 }
 
 /**
  * Gallery form controller action
  * @var string $id Item identifier
  */
-function gallery_save()
+function gallery_async_save()
 {
+    $result = array('status' => 0);
     // If we have really received form data
     if (isset($_POST)) {
 
@@ -119,9 +136,13 @@ function gallery_save()
             $dbItem = new \samson\activerecord\gallery(false);
         }
 
+
         // Save image name
-        $dbItem->Name = filter_var($_POST['name']);
-        $dbItem->save();
+        if (isset($_POST['name'])) {
+            $dbItem->Name = filter_var($_POST['name']);
+            $dbItem->save();
+            $result = array('status' => 1);
+        }
 
         // At this point we can guarantee that $dbItem is not empty
         if (isset($_FILES['file']['tmp_name']) && $_FILES['file']['tmp_name'] != null) {
@@ -143,22 +164,24 @@ function gallery_save()
                 $dbItem->Name = $name;
                 // Save image
                 $dbItem->save();
+                $result = array('status' => 1);
             }
 
         }
 
     }
 
-    // Redirect to main page
-    url()->redirect();
+    return $result;
 }
 
 /**
  * Delete controller action
  *@var string $id Item db identifier
  */
-function gallery_delete($id)
+function gallery_async_delete($id)
 {
+    $result = array('status' => 0);
+
     /** @var \samson\activerecord\gallery $dbItem */
     $dbItem = null;
     if (dbQuery('gallery')->id($id)->first($dbItem)) {
@@ -166,8 +189,9 @@ function gallery_delete($id)
         unlink($dbItem->Src);
         // Delete DB record about this file
         $dbItem->delete();
+        $result['status'] = 1;
     }
 
-    // Go to main page
-    url()->redirect();
+    return $result;
+
 }

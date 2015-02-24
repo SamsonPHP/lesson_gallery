@@ -25,6 +25,7 @@
         "samsonos/seo_sitemap": "*",
         "samsonos/php_i18n": "*",
         "samsonos/php_html":"*",
+        "samsonos/js_tinybox":"*",
 	    "phpunit/phpunit": "4.*"
     },
     "autoload": {
