@@ -13,6 +13,7 @@ return array(
 		"Back to gallery"	=>	"Обратно к галерее",
 		"Save"	=>	"Сохранить",
 		"New name"	=>	"Новое имя",
+            "Delete img" => "Удалить картинку",
             "All" => "Все",
     ),
 		"en"	=>array(

@@ -3,6 +3,26 @@
 /** Gallery images list controller action */
 function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize=4)
 {
+
+    $gallery = gallery_async_list($sorter, $direction, $currentPage, $pageSize);
+
+    /* Set window title and view to render, pass items variable to view, pass the Pager and current page to view*/
+    m()->view('gallery/index')->title('My gallery')->gallery_list($gallery['list'])->gallery_sorter($gallery['sorter'])->pager_html($gallery['pager']);
+}
+
+/** Gallery universal controller */
+function gallery__HANDLER()
+{
+    // Call our lsit controller
+    gallery_list();
+}
+
+/** Gallery images list asynchronous controller action */
+function gallery_async_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize=4)
+{
+    // Set the $result['status'] to 1 to provide asynchronous functionality
+    $result = array('status' => 1);
+
     // If no sorter is passed
     if (!isset($sorter)) {
         // Load sorter from session if it is there
@@ -14,9 +34,6 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
         // Load current page from session if it is there
         $currentPage = isset($_SESSION['SamsonPager_current_page']) ? $_SESSION['SamsonPager_current_page'] : 1;
     }
-
-    // Rendered HTML gallery items
-    $items = '';
 
     // Prepare db query object
     $query = dbQuery('gallery');
@@ -32,7 +49,6 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
     // Set the limit condition to db request
     $query->limit($pager->start, $pager->end);
 
-    // If sorter is passed
     if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
         // Add sorting condition to db request
         $query->order_by($sorter, $direction);
@@ -52,21 +68,18 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
          * prefix all its fields with "image_", return and gather this outputs
          * in $items
          */
-        $items .= m()->view('gallery/item')->image($dbItem)->output();
+        $items .= m()->view('gallery/item')->image($dbItem)->sorter($sorter)->direction($direction)->current_page($currentPage)->output();
     }
 
+    // Include the data about images in the result array
+    $result['list'] = m()->view('gallery/list')->items($items)->output();
+    // Include the data about Pager state in the result array
+    $result['pager'] = $pager->toHTML();
+    // Include the data about sorter links state in the result array
+    $result['sorter'] = m()->view('gallery/sorter')->current_page($currentPage)->output();
 
-    /* Set window title and view to render, pass items variable to view, pass the Pager and current page to view*/
-    m()->view('gallery/index')->title('My gallery')->items($items)->pager($pager)->current_page($currentPage);
+    return $result;
 }
-
-/** Gallery universal controller */
-function gallery__HANDLER()
-{
-    // Call our lsit controller
-    gallery_list();
-}
-
 
 /**
  * Gallery form controller action
@@ -157,8 +170,10 @@ function gallery_save()
  * Delete controller action
  *@var string $id Item db identifier
  */
-function gallery_delete($id)
+function gallery_async_delete($id)
 {
+    $result = array('status' => 0);
+
     /** @var \samson\activerecord\gallery $dbItem */
     $dbItem = null;
     if (dbQuery('gallery')->id($id)->first($dbItem)) {
@@ -166,8 +181,9 @@ function gallery_delete($id)
         unlink($dbItem->Src);
         // Delete DB record about this file
         $dbItem->delete();
+        $result['status'] = 1;
     }
 
-    // Go to main page
-    url()->redirect();
+    return $result;
+
 }
