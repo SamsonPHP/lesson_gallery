@@ -85,34 +85,38 @@ function gallery_async_list($sorter = null, $direction = 'ASC', $currentPage = 1
  * Gallery form controller action
  * @var string $id Item identifier
  */
-function gallery_form($id = null)
+function gallery_async_form($id = null)
 {
-    /*@var \samson\activerecord\gallery $dbItem */
+    $result = array('status' => 1);
+
+    /**@var \samson\activerecord\gallery $dbItem */
     $dbItem = null;
     /*
      * Try to recieve one first record from DB by identifier,
      * if $id == null the request will fail anyway, and in case
      * of success store record into $dbItem variable
      */
-
     if (dbQuery('gallery')->id($id)->first($dbItem)) {
+        $form = m()->view('gallery/form/newfile')->image($dbItem)->output();
         // Render the form to redact item
-        m()->view('gallery/form/index')->title('Redact form')->image($dbItem);
+        $result['form'] = m()->view('gallery/form/index')->title('Redact form')->image($dbItem)->form($form)->output();
     } elseif (isset($id)) {
         // File with passed ID wasn't find in DB
-        m()->view('gallery/form/notfoundID')->title('Not Found');
+        $result['form'] = m()->view('gallery/form/notfoundID')->title('Not Found')->output();
     } else {
         // No ID was passed
-        m()->view('gallery/form/newfile')->title('New Photo');
+        $result['form'] = m()->view('gallery/form/newfile')->title('New Photo')->output();
     }
+    return $result;
 }
 
 /**
  * Gallery form controller action
  * @var string $id Item identifier
  */
-function gallery_save()
+function gallery_async_save()
 {
+    $result = array('status' => 0);
     // If we have really received form data
     if (isset($_POST)) {
 
@@ -132,9 +136,13 @@ function gallery_save()
             $dbItem = new \samson\activerecord\gallery(false);
         }
 
+
         // Save image name
-        $dbItem->Name = filter_var($_POST['name']);
-        $dbItem->save();
+        if (isset($_POST['name'])) {
+            $dbItem->Name = filter_var($_POST['name']);
+            $dbItem->save();
+            $result = array('status' => 1);
+        }
 
         // At this point we can guarantee that $dbItem is not empty
         if (isset($_FILES['file']['tmp_name']) && $_FILES['file']['tmp_name'] != null) {
@@ -156,14 +164,14 @@ function gallery_save()
                 $dbItem->Name = $name;
                 // Save image
                 $dbItem->save();
+                $result = array('status' => 1);
             }
 
         }
 
     }
 
-    // Redirect to main page
-    url()->redirect();
+    return $result;
 }
 
 /**

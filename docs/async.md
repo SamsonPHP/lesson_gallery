@@ -147,17 +147,13 @@ s(document.body).pageInit(function(body){
 
 In this example ```s(document.body).pageInit(function(body){``` stands for ```$(document).ready(function(){``` in jQuery. So in the console we would find an 1 and an html view of images. ```ajaxClick``` send the json encoded information and we can use the response as an object to load separate pars of our view. Now lets create the function to work with our page asynchronously. 
 ```javascript
-// Initialize some variables
-var container = s('.gallery-container');
-var pager = s('#pager');
-var sorter = s('#line1');
 
 var load = function(response)
 {
     if (response && response.list) {
-        container.html(response.list);
-        pager.html(response.pager);
-        sorter.html(response.sorter);
+        s('.gallery-container').html(response.list);
+        s('#pager').html(response.pager);
+        s('#line1'.html(response.sorter);
     }
     
     // Function suppose to call itself after every asynchronous action in the page
@@ -216,9 +212,9 @@ We have to modify our ```www/js/index.js``` to provide this functionality. All w
 var load = function(response)
 {
     if (response && response.list) {
-        container.html(response.list);
-        pager.html(response.pager);
-        sorter.html(response.sorter);
+        s('.gallery-container').html(response.list);
+        s('#pager').html(response.pager);
+        s('#line1'.html(response.sorter);
     }
 
     s('li a', pager).ajaxClick(load);
@@ -243,3 +239,153 @@ return array(
     "Delete img" => "Удалить картинку",
     ...
 ```
+
+##Asynchronous upload form using ```js_tinybox``` module
+
+First of all we have to include ```"samsonos/js_tinybox":"*",``` to the ```composer.json``` file and make a composer update. Now we can use ```tinyboxAjax()``` function which is created to work with forms. Before we go to the javascript we have to rebuild our controllers connected with upload form into asynchronous controllers.
+ ```php
+ /**
+  * Gallery form controller action
+  * @var string $id Item identifier
+  */
+ function gallery_async_form($id = null)
+ {
+     $result = array('status' => 1);
+ 
+     /**@var \samson\activerecord\gallery $dbItem */
+     $dbItem = null;
+     /*
+      * Try to recieve one first record from DB by identifier,
+      * if $id == null the request will fail anyway, and in case
+      * of success store record into $dbItem variable
+      */
+     if (dbQuery('gallery')->id($id)->first($dbItem)) {
+         $form = m()->view('gallery/form/newfile')->image($dbItem)->output();
+         // Render the form to redact item
+         $result['form'] = m()->view('gallery/form/index')->title('Redact form')->image($dbItem)->form($form)->output();
+     } elseif (isset($id)) {
+         // File with passed ID wasn't find in DB
+         $result['form'] = m()->view('gallery/form/notfoundID')->title('Not Found')->output();
+     } else {
+         // No ID was passed
+         $result['form'] = m()->view('gallery/form/newfile')->title('New Photo')->output();
+     }
+     return $result;
+ }
+ 
+ /**
+  * Gallery form controller action
+  * @var string $id Item identifier
+  */
+ function gallery_async_save()
+ {
+     $result = array('status' => 0);
+     // If we have really received form data
+     if (isset($_POST)) {
+ 
+         /** @var \samson\activerecord\gallery $dbItem */
+         $dbItem = null;
+ 
+         // Clear received variable
+         $id = isset($_POST['id']) ? filter_var($_POST['id']) : null;
+ 
+         /*
+          * Try to receive one first record from DB by identifier,
+          * in case of success store record into $dbItem variable,
+          * otherwise create new gallery item
+          */
+         if (!dbQuery('gallery')->id($id)->first($dbItem)) {
+             // Create new instance but without creating a db record
+             $dbItem = new \samson\activerecord\gallery(false);
+         }
+ 
+ 
+         // Save image name
+         if (isset($_POST['name'])) {
+             $dbItem->Name = filter_var($_POST['name']);
+             $dbItem->save();
+             $result = array('status' => 1);
+         }
+ 
+         // At this point we can guarantee that $dbItem is not empty
+         if (isset($_FILES['file']['tmp_name']) && $_FILES['file']['tmp_name'] != null) {
+             $tmp_name = $_FILES["file"]["tmp_name"];
+             $name = $_FILES["file"]["name"];
+ 
+             // Create upload dir with correct rights
+             if (!file_exists('upload')) {
+                 mkdir('upload', 0775);
+             }
+ 
+             $src = 'upload/' . md5(time() . $name);
+ 
+             // If file has been created
+             if (move_uploaded_file($tmp_name, $src)) {
+                 // Store file in upload dir
+                 $dbItem->Src = $src;
+                 $dbItem->size = $_FILES["file"]["size"];
+                 $dbItem->Name = $name;
+                 // Save image
+                 $dbItem->save();
+                 $result = array('status' => 1);
+             }
+ 
+         }
+ 
+     }
+ 
+     return $result;
+ }
+ 
+ Now in ```www/js/index.js``` we have to create javascript function to show our ```gallery/form``` view using tinybox. To make this function work asynchronously we have to call it within our ```load()``` function.
+ ```javascript
+ function edit(btn){
+     btn.tinyboxAjax({
+         // Set the response container name 
+         html : 'form',
+         // Close tinybox on click elsewhere besides the box
+         oneClickClose : true,
+         renderedHandler : function(form, tb) {
+             var uploadForm = s('form', form);
+             uploadForm.ajaxSubmit(function(response){
+                 // Call load function after uploading the file
+                 load(response);
+                 // Close tinybox
+                 tb.close();
+             });
+         }
+     });
+ 
+ }
+ 
+ var load = function(response)
+ {
+     container = s('.gallery-container');
+     pager = s('#pager');
+     sorter = s('#line1');
+     form = s('.tinybox');
+ 
+     if (response && response.list) {
+         container.html(response.list);
+         pager.html(response.pager);
+         sorter.html(response.sorter);
+     }
+ 
+     s('li a', pager).ajaxClick(load);
+     s('.sorter').ajaxClick(load);
+     s('.delete').ajaxClick(load, function(btn){
+         return confirm(s('.delete_message', btn.parent()).val());
+     });
+     edit(s('.upload_btn'));
+     edit(s('.edit'));
+ }
+ 
+ s('#pager').pageInit(load);
+ ```
+ 
+ As we want to show uploaded picture at once after uploading we have to add asynchronous controller chain call when we submit upload form. So we have to change ```form action``` in the ```gallery/form/newfile.php``` view.
+ ```php
+ <form action="<?php url_base('gallery', 'save', 'list', 'Loaded', 'DESC', '1')?>/" method="post" enctype="multipart/form-data">
+ ```
+ 
+ 

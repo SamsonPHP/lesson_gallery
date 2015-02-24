@@ -1,20 +1,10 @@
-
-<div id="item">
-    <a class="btn delete" title="<?php t('Delete')?>" href="<?php url_base('gallery', 'delete', 'image_PhotoID')?>">X</a>
-    <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
-    <p>Name: <?php iv('image_Name')?></p>
-    <p>Size: <?php iv('image_size')?></p>
-    <p>Loaded: <?php iv('image_Loaded')?></p>
-
+<div class="redact">
+    <div id="item">
+        <a class="btn delete" title="<?php t('Delete')?>" href="<?php url_base('gallery', 'delete', 'image_PhotoID')?>">X</a>
+        <img src="<?php iv('image_Src')?>"  title="<?php iv('image_Name')?>">
+        <p>Name: <?php iv('image_Name')?></p>
+        <p>Size: <?php iv('image_size')?></p>
+        <p>Loaded: <?php iv('image_Loaded')?></p>
+    </div>
+   <?php iv('form')?>
 </div>
-
-<div class="upload_form">
-    <a href="/"><?php t('Back to gallery')?></a>
-    <form action="<?php url_base('gallery','save')?>" method="post" enctype="multipart/form-data">
-    <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
-        <?php t('New name')?>: <input name="name" value="<?php iv('image_Name')?>">
-    <input type="file" name="file" value="<?php iv('image_Src')?>">
-    <input type="submit" value="<?php t('Save')?>">
-</form>
-</div>
-

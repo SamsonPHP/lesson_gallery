@@ -1,5 +1,5 @@
 
-<a href="<?php url_base('gallery', 'form')?>"><?php t('Upload photo')?></a>
+<a class="upload_btn" href="<?php url_base('gallery', 'form')?>"><?php t('Upload photo')?></a>
 <?php t('Sort by:')?>
 <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'ASC', 'current_page')?>"> <?php t('Date')?> ↗</a>
 <a class="sorter" href="<?php url_base('gallery', 'list', 'Loaded', 'DESC', 'current_page')?>"> <?php t('Date')?> ↘</a>
