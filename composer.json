@@ -26,6 +26,7 @@
         "samsonos/php_i18n": "*",
         "samsonos/php_html":"*",
         "samsonos/js_tinybox":"*",
+        "samsonphp/upload":"*",
 	    "phpunit/phpunit": "4.*"
     },
     "autoload": {

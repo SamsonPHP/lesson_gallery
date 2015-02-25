@@ -1,11 +1,8 @@
 <div class="upload_form">
-    <a href="/"><?php t('Back to gallery')?></a>
-    <form action="<?php url_base('gallery', 'save', 'list', 'Loaded', 'DESC', '1')?>/" method="post" enctype="multipart/form-data">
-        <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
-        <?php if(isv('image_Name')):?>
-            <?php t('New name')?>: <input name="name" value="<?php iv('image_Name')?>">
-        <?php endif?>
-        <input type="file" name="file"  <?php if(!isv('image_Name')):?> required <?php endif?> value="<?php iv('image_Src')?>">
-        <input type="submit" value="<?php t('Save')?>">
-    </form>
+    <p>
+        <input type="hidden" class="__action" value="<?php url_base('gallery', 'upload', 'list', 'Loaded', 'DESC', '1'); ?>/">
+        <input type="hidden" class="__file_size" value="50000000">
+        <input class="__upload" type="file" name="uploadFile">
+        <div class="__progress_text"></div>
+    </p>
 </div>
