@@ -12,8 +12,8 @@ RewriteCond %{REQUEST_URI} !(.*)/$
 RewriteRule ^(.*)$ http://%{HTTP_HOST}/$1/ [L,R=301]
 
 # Redirect index.php to /
-RewriteCond %{THE_REQUEST} ^.*/index\.php 
-RewriteRule ^(.*)index.php$ /$1 [R=301,L] 
+RewriteCond %{THE_REQUEST} ^.*/index\.php
+RewriteRule ^(.*)index.php$ /$1 [R=301,L]
 
 # Redirect all requests to init script
 RewriteCond %{REQUEST_FILENAME} !-f

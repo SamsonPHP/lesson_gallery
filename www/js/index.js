@@ -17,11 +17,38 @@ function edit(btn){
         renderedHandler : function(form, tb) {
             var uploadForm = s('form', form);
             uploadForm.ajaxSubmit(function(response){
+
                 // Call load function after uploading the file
                 load(response);
                 // Close tinybox
                 tb.close();
             });
+
+            /* Upload module support start */
+            // Cache file input
+            var file = s('.__upload');
+            // Bind upload event
+            uploadFileHandler(file, {
+                // Handle event after upload finishing
+                response: function (response) {
+                    try
+                    {
+                        // Parse server response
+                        response = JSON.parse(response);
+
+                        // If external response handler is passed
+                        if( responseHandler ) responseHandler( response, form);
+                    }
+                    catch(e){s.trace(e.toString())}
+
+                    // Call load function after uploading the file
+                    load(response);
+                    // Close tinybox
+                    tb.close();
+                }
+
+            });
+            /* Upload module support end */
         }
     });
 
@@ -50,3 +77,5 @@ var load = function(response)
 }
 //Call this function when page is loaded for the firs time
 s('#pager').pageInit(load);
+
+

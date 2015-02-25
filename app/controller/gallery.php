@@ -195,3 +195,29 @@ function gallery_async_delete($id)
     return $result;
 
 }
+
+function gallery_async_upload()
+{
+    // Create AJAX response array
+    $result = array('status' => 0);
+    // Create an empty SQL query
+    $dbItem = new \samson\activerecord\gallery(false);
+
+    // Create object for uploading file to server
+    $upload = new \samsonphp\upload\Upload(array('png','jpg', 'jpeg'));
+
+    if ($upload->upload($filePath, $fileName, $realName)) {
+        // Store the path to the uploaded file in the DB
+        $dbItem->Src = $filePath;
+        // Save file size to the DB
+        $dbItem->size = $upload->size();
+        // Save the original name of the picture in the DB
+        $dbItem->Name = $realName;
+        // Execute the query
+        $dbItem->save();
+        // Change result status for successful asynchronous action
+        $result['status'] = 1;
+}
+
+    return $result;
+}
