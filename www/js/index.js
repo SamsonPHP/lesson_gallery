@@ -58,11 +58,12 @@ function edit(btn){
 var load = function(response)
 {
     // Initialize variable
+    pager = s('#pager');
     form = s('.tinybox');
 
     if (response && response.list) {
         s('.gallery-container').html(response.list);
-        s('#pager').html(response.pager);
+        pager.html(response.pager);
         s('#line1').html(response.sorter);
     }
     // Function suppose to call itself after every asynchronous action in the page

@@ -1,7 +1,7 @@
 <?php
 
 /** Gallery images list controller action */
-function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize=4)
+function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize = 4)
 {
 
     $gallery = gallery_async_list($sorter, $direction, $currentPage, $pageSize);
@@ -11,14 +11,14 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
 }
 
 /** Gallery universal controller */
-function gallery__HANDLER()
+function gallery1__HANDLER()
 {
     // Call our lsit controller
     gallery_list();
 }
 
 /** Gallery images list asynchronous controller action */
-function gallery_async_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize=4)
+function gallery_async_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize = 4)
 {
     // Set the $result['status'] to 1 to provide asynchronous functionality
     $result = array('status' => 1);
@@ -137,12 +137,6 @@ function gallery_async_save()
         }
 
 
-        // Save image name
-        if (isset($_POST['name'])) {
-            $dbItem->Name = filter_var($_POST['name']);
-            $dbItem->save();
-            $result = array('status' => 1);
-        }
 
         // At this point we can guarantee that $dbItem is not empty
         if (isset($_FILES['file']['tmp_name']) && $_FILES['file']['tmp_name'] != null) {
@@ -167,6 +161,13 @@ function gallery_async_save()
                 $result = array('status' => 1);
             }
 
+        }
+
+        // Save image name
+        if (isset($_POST['name'])) {
+            $dbItem->Name = filter_var($_POST['name']);
+            $dbItem->save();
+            $result = array('status' => 1);
         }
 
     }
@@ -204,7 +205,7 @@ function gallery_async_upload()
     $dbItem = new \samson\activerecord\gallery(false);
 
     // Create object for uploading file to server
-    $upload = new \samsonphp\upload\Upload(array('png','jpg', 'jpeg'));
+    $upload = new \samsonphp\upload\Upload(array('png','jpg', 'jpeg', 'gif'));
 
     if ($upload->upload($filePath, $fileName, $realName)) {
         // Store the path to the uploaded file in the DB

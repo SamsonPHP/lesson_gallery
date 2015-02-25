@@ -16,4 +16,5 @@ s()
     ->subscribe('core.routing', array(url(), 'router')) // Use default SamsonPHP URL router
     ->subscribe('core.e404', 'main_e404')               // Set e404 error handler
     ->load('../src/main')                               // Load main module
+    ->load('../src/gallery')                               // Load gallery module
     ->start('gallery');                                    // Start framework
