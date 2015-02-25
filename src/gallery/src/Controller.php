@@ -11,7 +11,6 @@ class Gallery extends \samson\core\CompressableExternalModule
     /** Gallery images list controller action */
     public function __list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize = 4)
     {
-
         $gallery = $this->__async_list($sorter, $direction, $currentPage, $pageSize);
 
         /* Set window title and view to render, pass items variable to view, pass the Pager and current page to view*/
@@ -37,38 +36,25 @@ class Gallery extends \samson\core\CompressableExternalModule
             $sorter = isset($_SESSION['sorter']) ? $_SESSION['sorter'] : null;
             $direction = isset($_SESSION['direction']) ? $_SESSION['direction'] : null;
         }
-
+        // If no page is passed
         if (!isset($currentPage)) {
             // Load current page from session if it is there
             $currentPage = isset($_SESSION['SamsonPager_current_page']) ? $_SESSION['SamsonPager_current_page'] : 1;
         }
 
-        // Prepare db query object
-        $query = dbQuery('gallery');
-
-        // Set the prefix for pager
-        $urlPrefix = "gallery/list/".$sorter."/".$direction."/";
-        // Count the number of images in query
-        $rowsCount = $query->count();
-
-        // Create a new instance of Pager
-        $pager = new \samson\pager\Pager($currentPage, $pageSize, $urlPrefix, $rowsCount);
-
-        // Set the limit condition to db request
-        $query->limit($pager->start, $pager->end);
-
         if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
-            // Add sorting condition to db request
-            $query->order_by($sorter, $direction);
-
             // Store sorting in a session
             $_SESSION['sorter'] = $sorter;
             $_SESSION['direction'] = $direction;
         }
 
-        // Iterate all records from "gallery" table
+        /** @var  Collection  */
+        $collection = new Collection($this, $sorter, $direction, $currentPage, $pageSize);
+
+        $pager = $collection->pager;
+
         $items = '';
-        foreach ($query->exec() as $dbItem) {
+        foreach ($collection->collection as $dbItem) {
             /**@var \samson\activerecord\gallery $dbItem``` */
 
             /*
@@ -84,7 +70,7 @@ class Gallery extends \samson\core\CompressableExternalModule
         // Include the data about Pager state in the result array
         $result['pager'] = $pager->toHTML();
         // Include the data about sorter links state in the result array
-        $result['sorter'] = m()->view('sorter')->current_page($currentPage)->output();
+        $result['sorter'] = $this->view('sorter')->current_page($currentPage)->output();
 
         return $result;
     }
