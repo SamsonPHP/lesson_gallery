@@ -1,13 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: zyablitskiy
- * Date: 25.02.2015
- * Time: 14:46
- */
 
 namespace gallery;
-
 
 use samsonos\cms\collection\Generic;
 use samson\pager\Pager;

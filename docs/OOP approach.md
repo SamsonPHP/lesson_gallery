@@ -1,6 +1,6 @@
 #Convert gallery into external module
 
-For this goal we have to create a folder ```src/gallery```. In this folder create ```src/Controller.php``` and execute ```composer dumpautload``` from the commandline in the project root directory. Than you have to place all functionality from ```app/controller/gallery.php``` in this controller. Here we have to create a ```class Gallery``` with ``` protected $id = 'gallery';``` and replace all ```gallery``` int the methods names to ```_```. 
+For this goal we have to create a folder ```src/gallery```. In this folder create main controller ```src/Controller.php``` and execute ```composer dumpautload``` from the commandline in the project root directory. Than you have to place all functionality from ```app/controller/gallery.php``` in this controller. Here we have to create a ```class Gallery``` with ``` protected $id = 'gallery';``` and replace all ```gallery``` int the methods names to ```_```. 
 ```php
 <?php
 
@@ -238,3 +238,162 @@ class Gallery extends \samson\core\CompressableExternalModule
 ```
 
 Now we have to move all vies from ```app/view/gallery``` to the ```src/gallery/www``` folder. All this views suppose to have ```.vphp``` extensions. And we have to remove ```gallery/``` from every call of views in the methods. And replace ```m()->``` to the ```$this->```.
+
+##Add Image and Collection entities
+
+We wan to build OOP module so we have to create ```src/Image.php```. 
+```php
+<?php
+
+namespace gallery;
+
+class Image extends \samson\activerecord\gallery
+{
+
+}
+```
+We will add some cool features to this entity later.
+We have to separate our module which will work with DB from controller which will interact with user. So let's create ```src/Collection.php``` to get the image collection from database.
+```php
+<?php
+
+namespace gallery;
+
+
+use samsonos\cms\collection\Generic;
+use samson\pager\Pager;
+
+class Collection extends Generic
+{
+    /** @var  string Sorter name */
+    protected $sorter;
+
+    /** @var  string Sorter direction */
+    protected $direction;
+
+    /** @var  int Current page for pager */
+    protected $currentPage;
+
+    /** @var  int Number of items per page for pager */
+    protected $pageSize;
+
+    /** @var string Block view file */
+    protected $indexView = 'www/index';
+
+    /** @var string Item view file */
+    protected $itemView = 'www/item';
+
+    /** @var  \samson\pager\Pager Pagination */
+    public $pager;
+
+    public $collection = array();
+
+    /**
+     * Fill collection with items
+     * @return array Collection of items
+     */
+    public function fill()
+    {
+        // Prepare db query object
+        $query = dbQuery('gallery\Image');
+
+        // Set the sorting and limit condition to db request
+        $query->order_by($this->sorter, $this->direction)->limit($this->pager->start, $this->pager->end);
+
+
+        // Iterate all records from "gallery" table
+
+        foreach ($query->exec() as $dbItem) {
+
+            /*
+             * Render view(output method) and pass object received fron DB and
+             * prefix all its fields with "image_", return and gather this outputs
+             * in $items
+             */
+            $this->collection[] = $dbItem;
+        }
+        return $this->collection;
+    }
+
+    /**
+     * Generic collection constructor
+     * @var \samson\core\IViewable View render object
+     */
+    public function __construct($renderer, $sorter, $direction, $currentPage, $pageSize)
+    {
+        parent::__construct($renderer);
+
+        $this->sorter = $sorter;
+        $this->direction = $direction;
+        $this->currentPage = $currentPage;
+        $this->pageSize = $pageSize;
+
+        if (!isset($this->pager)) {
+            // Set the prefix for pager
+            $urlPrefix = "gallery/list/" . $this->sorter . "/" . $this->direction . "/";
+            // Count the number of images in query
+            $query = dbQuery('gallery\Image');
+            $rowsCount = $query->count();
+
+            // Create a new instance of Pager
+            $this->pager = new Pager($this->currentPage, $this->pageSize, $urlPrefix, $rowsCount);
+        }
+        $this->fill();
+    }
+}
+```
+
+Now we have to modify our ```list``` action in ```src/Controller.php``` to use new entities.
+```php
+ /** Gallery images list asynchronous controller action */
+    public function __async_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pageSize = 4)
+    {
+        // Set the $result['status'] to 1 to provide asynchronous functionality
+        $result = array('status' => 1);
+
+        // If no sorter is passed
+        if (!isset($sorter)) {
+            // Load sorter from session if it is there
+            $sorter = isset($_SESSION['sorter']) ? $_SESSION['sorter'] : null;
+            $direction = isset($_SESSION['direction']) ? $_SESSION['direction'] : null;
+        }
+        // If no page is passed
+        if (!isset($currentPage)) {
+            // Load current page from session if it is there
+            $currentPage = isset($_SESSION['SamsonPager_current_page']) ? $_SESSION['SamsonPager_current_page'] : 1;
+        }
+
+        if (isset($sorter) && in_array($sorter, array('Loaded', 'size'))) {
+            // Store sorting in a session
+            $_SESSION['sorter'] = $sorter;
+            $_SESSION['direction'] = $direction;
+        }
+
+        /** @var  Collection  */
+        $collection = new Collection($this, $sorter, $direction, $currentPage, $pageSize);
+
+        $pager = $collection->pager;
+
+        $items = '';
+        foreach ($collection->collection as $dbItem) {
+            /**@var \samson\activerecord\gallery $dbItem``` */
+
+            /*
+             * Render view(output method) and pass object received fron DB and
+             * prefix all its fields with "image_", return and gather this outputs
+             * in $items
+             */
+            $items .= $this->view('item')->image($dbItem)->sorter($sorter)->direction($direction)->current_page($currentPage)->output();
+        }
+
+        // Include the data about images in the result array
+        $result['list'] = $this->view('list')->items($items)->output();
+        // Include the data about Pager state in the result array
+        $result['pager'] = $pager->toHTML();
+        // Include the data about sorter links state in the result array
+        $result['sorter'] = $this->view('sorter')->current_page($currentPage)->output();
+
+        return $result;
+    }
+ ```
+
