@@ -1,7 +1,7 @@
 #Upload module
 
 There is a detail manual how to configure this module [here](https://github.com/SamsonPHP/upload).
-But here let's go true the instalation at this particular case.
+But let's go true the installation at this particular case.
 
 ##Add module to the composer
 
