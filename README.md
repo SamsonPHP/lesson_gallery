@@ -4,8 +4,8 @@ Every project on samsophp starts with [bootstrap](https://github.com/samsonos/ht
 This is a training project which will show you all the opportunities of the framework and teach you how to work with main modules. 
 For successful learning you have to follow this instructions step by step:
 
-1. [Building the functionality of the gallery.](/blob/master/docs/functional.md)
-2. [Adding pager module.](/blob/master/docs/pager.md)
-3. [Adding localization support.](/blob/master/docs/i18n.md)
-4. [Make your gallery asynchronous](blob/master/docs/async.md)
-5. [Adding upload module](/blob/master/docs/upload.md)
+1. [Building the functionality of the gallery.](/docs/functional.md)
+2. [Adding pager module.](/docs/pager.md)
+3. [Adding localization support.](/docs/i18n.md)
+4. [Make your gallery asynchronous](/docs/async.md)
+5. [Adding upload module](/docs/upload.md)
