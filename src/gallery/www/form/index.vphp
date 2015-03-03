@@ -5,12 +5,12 @@
         <p>Size: <?php iv('image_size')?></p>
         <p>Loaded: <?php iv('image_Loaded')?></p>
     </div>
-    <div class="upload_form">
+    <div class="redact_form">
         <form action="<?php url_base('gallery', 'save', 'list', 'Loaded', 'DESC', '1')?>/" method="post" enctype="multipart/form-data">
             <input type="hidden" name="id" value="<?php iv('image_PhotoID')?>">
             <?php t('New name')?>: <input name="name" value="<?php iv('image_Name')?>">
-            <input type="file" name="file"  <?php if(!isv('image_Name')):?> required <?php endif?> value="<?php iv('image_Src')?>">
             <input type="submit" value="<?php t('Save')?>">
         </form>
     </div>
+    <?php iv('form')?>
 </div>

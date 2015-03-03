@@ -3,6 +3,7 @@
 // Set the namespace
 namespace gallery;
 
+use samson\pager\Pager;
 
 class Gallery extends \samson\core\CompressableExternalModule
 {
@@ -48,27 +49,19 @@ class Gallery extends \samson\core\CompressableExternalModule
             $_SESSION['direction'] = $direction;
         }
 
-        /** @var  Collection  */
-        $collection = new Collection($this, $sorter, $direction, $currentPage, $pageSize);
+        // Set the prefix for pager
+        $urlPrefix = "gallery/list/" . $sorter . "/" . $direction . "/";
 
-        $pager = $collection->pager;
+        // Create a new instance of Pager
+        $pager = new Pager($currentPage, $pageSize, $urlPrefix);
 
-        $items = '';
-        foreach ($collection->collection as $dbItem) {
-            /**@var \samson\activerecord\gallery $dbItem``` */
-
-            /*
-             * Render view(output method) and pass object received fron DB and
-             * prefix all its fields with "image_", return and gather this outputs
-             * in $items
-             */
-            $items .= $this->view('item')->image($dbItem)->sorter($sorter)->direction($direction)->current_page($currentPage)->output();
-        }
+        // Create a new instance of Collection
+        $collection = new Collection($this, $sorter, $direction, $pager);
 
         // Include the data about images in the result array
-        $result['list'] = $this->view('list')->items($items)->output();
+        $result['list'] = $collection->render();
         // Include the data about Pager state in the result array
-        $result['pager'] = $pager->toHTML();
+        $result['pager'] = $collection->pager->toHTML();
         // Include the data about sorter links state in the result array
         $result['sorter'] = $this->view('sorter')->current_page($currentPage)->output();
 
@@ -77,143 +70,99 @@ class Gallery extends \samson\core\CompressableExternalModule
 
     /**
      * Gallery form controller action
-     * @var string $PhotoID Item identifier
+     * @var string $photoID Item identifier
+     * @return int status for asynchronous action
      */
-    public function __async_form($PhotoID = null)
+    public function __async_form($photoID = null)
     {
         $result = array('status' => 1);
-
-        /**@var \samson\activerecord\gallery $dbItem */
-        $dbItem = null;
-        /*
-         * Try to recieve one first record from DB by identifier,
-         * if $id == null the request will fail anyway, and in case
-         * of success store record into $dbItem variable
-         */
-        if (dbQuery('gallery')->id($PhotoID)->first($dbItem)) {
-            $form = $this->view('/form/newfile')->image($dbItem)->output();
+        // Try to recieve one first record from DB by identifier,
+        if (false != ($dbItem = Image::byID($photoID))) {
             // Render the form to redact item
-            $result['form'] = $this->view('/form/index')->title('Redact form')->image($dbItem)->form($form)->output();
-        } elseif (isset($PhotoID)) {
+            $result['form'] = $this->view('/form/index')->title('Redact form')->image($dbItem)->form($this->view('/form/newfile')->output())->output();
+        } elseif (isset($photoID)) {
             // File with passed ID wasn't find in DB
             $result['form'] = $this->view('/form/notfoundID')->title('Not Found')->output();
         } else {
             // No ID was passed
-            $result['form'] = $this->view('/form/newfile')->title('New Photo')->output();
+            $result['form'] = $this->view('/form/newfile')->image_PhotoID(0)->title('New Photo')->output();
         }
         return $result;
     }
 
     /**
-     * Gallery form controller action
+     * Gallery save controller action
      * @var string $PhotoID Item identifier
+     * @return int status for asynchronous action and view
      */
     public function __async_save()
     {
         $result = array('status' => 0);
         // If we have really received form data
         if (isset($_POST)) {
-
-            /** @var \samson\activerecord\gallery $dbItem */
-            $dbItem = null;
-
             // Clear received variable
-            $PhotoID = isset($_POST['id']) ? filter_var($_POST['id']) : null;
-
+            $photoID = isset($_POST['id']) ? filter_var($_POST['id']) : null;
             /*
              * Try to receive one first record from DB by identifier,
-             * in case of success store record into $dbItem variable,
-             * otherwise create new gallery item
+             * in case of success store record into $dbItem variable.
              */
-            if (!dbQuery('gallery')->id($PhotoID)->first($dbItem)) {
-                // Create new instance but without creating a db record
-                $dbItem = new \samson\activerecord\gallery(false);
-            }
-
-
-
-            // At this point we can guarantee that $dbItem is not empty
-            if (isset($_FILES['file']['tmp_name']) && $_FILES['file']['tmp_name'] != null) {
-                $tmp_name = $_FILES["file"]["tmp_name"];
-                $name = $_FILES["file"]["name"];
-
-                // Create upload dir with correct rights
-                if (!file_exists('upload')) {
-                    mkdir('upload', 0775);
-                }
-
-                $src = 'upload/' . md5(time() . $name);
-
-                // If file has been created
-                if (move_uploaded_file($tmp_name, $src)) {
-                    // Store file in upload dir
-                    $dbItem->Src = $src;
-                    $dbItem->size = $_FILES["file"]["size"];
-                    $dbItem->Name = $name;
-                    // Save image
-                    $dbItem->save();
-                    $result = array('status' => 1);
-                }
-
-            }
-
-            // Save image name
-            if (isset($_POST['name'])) {
-                $dbItem->Name = filter_var($_POST['name']);
-                $dbItem->save();
+            if (false != ($dbItem = Image::byID($photoID))) {
+                // Update image name in DB
+                $dbItem->updateName(filter_var($_POST['name']));
+                // Change the request status for successful asynchronous action
                 $result = array('status' => 1);
             }
-
         }
-
         return $result;
     }
 
     /**
      * Delete controller action
-     *@var string $PhotoID Item db identifier
+     * @var string $PhotoID Item db identifier
+     * @return int status for asynchronous action
      */
-    public function __async_delete($PhotoID)
+    public function __async_delete($photoID)
     {
         $result = array('status' => 0);
-
-        /** @var \samson\activerecord\gallery $dbItem */
-        $dbItem = null;
-        if (dbQuery('gallery')->id($PhotoID)->first($dbItem)) {
-            // Delete uploaded file
-            unlink($dbItem->Src);
-            // Delete DB record about this file
+        /** @var \gallery\Image $dbItem */
+        if (false != ($dbItem = Image::byID($photoID))) {
+            // Delete image from server and remove DB record about this image
             $dbItem->delete();
+            // Change the request status for successful asynchronous action
             $result['status'] = 1;
         }
-
         return $result;
-
     }
 
-    public function __async_upload()
+    /**
+     * Upload controller action
+     * @return int status for asynchronous action
+     */
+    public function __async_upload($photoID = null)
     {
         // Create AJAX response array
         $result = array('status' => 0);
-        // Create an empty SQL query
-        $dbItem = new \samson\activerecord\gallery(false);
 
-        // Create object for uploading file to server
-        $upload = new \samsonphp\upload\Upload(array('png','jpg', 'jpeg', 'gif'));
+        /*
+         * Try to receive one first record from DB by identifier,
+         * in case of success store record into $dbItem variable,
+         * delete old picture from server without deleting DB record.
+         * Otherwise create new instance of \gallery\Image
+         */
+        if (false != ($dbItem = Image::byID($photoID))) {
+            $dbItem->delete(false);
+        } else {
+            /** @var \gallery\Image $dbItem */
+            $dbItem = new Image(false);
+        }
+        /*
+         * Upload file to the server, in case of success
+         * set the request status to 1 for successful asynchronous action
+         */
+        if ($dbItem->save(new \samsonphp\upload\Upload(array('png', 'jpg', 'jpeg', 'gif')))) {
 
-        if ($upload->upload($filePath, $fileName, $realName)) {
-            // Store the path to the uploaded file in the DB
-            $dbItem->Src = $filePath;
-            // Save file size to the DB
-            $dbItem->size = $upload->size();
-            // Save the original name of the picture in the DB
-            $dbItem->Name = $realName;
-            // Execute the query
-            $dbItem->save();
-            // Change result status for successful asynchronous action
             $result['status'] = 1;
         }
-
         return $result;
     }
 }

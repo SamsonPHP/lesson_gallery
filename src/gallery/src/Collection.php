@@ -3,7 +3,6 @@
 namespace gallery;
 
 use samsonos\cms\collection\Generic;
-use samson\pager\Pager;
 
 class Collection extends Generic
 {
@@ -20,7 +19,7 @@ class Collection extends Generic
     protected $pageSize;
 
     /** @var string Block view file */
-    protected $indexView = 'www/index';
+    protected $indexView = 'www/list';
 
     /** @var string Item view file */
     protected $itemView = 'www/item';
@@ -28,7 +27,22 @@ class Collection extends Generic
     /** @var  \samson\pager\Pager Pagination */
     public $pager;
 
-    public $collection = array();
+
+    /**
+     * Render collection item block
+     * @param mixed $item Item to render
+     * @return string Rendered collection item block
+     */
+    public function renderItem($item)
+    {
+        return $this->renderer
+            ->view($this->itemView)
+            ->image($item)
+            ->sorter($this->sorter)
+            ->direction($this->direction)
+            ->current_page($this->pager->current_page)
+            ->output();
+    }
 
     /**
      * Fill collection with items
@@ -39,47 +53,29 @@ class Collection extends Generic
         // Prepare db query object
         $query = dbQuery('gallery\Image');
 
+        // Get the number of images in db for Pager
+        $this->pager->update($query->count());
+
         // Set the sorting and limit condition to db request
         $query->order_by($this->sorter, $this->direction)->limit($this->pager->start, $this->pager->end);
 
-
-        // Iterate all records from "gallery" table
-
-        foreach ($query->exec() as $dbItem) {
-
-            /*
-             * Render view(output method) and pass object received fron DB and
-             * prefix all its fields with "image_", return and gather this outputs
-             * in $items
-             */
-            $this->collection[] = $dbItem;
-        }
-        return $this->collection;
+        //
+        return $this->collection = $query->exec();
     }
 
     /**
      * Generic collection constructor
      * @var \samson\core\IViewable View render object
      */
-    public function __construct($renderer, $sorter, $direction, $currentPage, $pageSize)
+    public function __construct($renderer, $sorter, $direction, \samson\pager\Pager $pager)
     {
         parent::__construct($renderer);
 
+        $this->pager = & $pager;
+
         $this->sorter = $sorter;
         $this->direction = $direction;
-        $this->currentPage = $currentPage;
-        $this->pageSize = $pageSize;
 
-        if (!isset($this->pager)) {
-            // Set the prefix for pager
-            $urlPrefix = "gallery/list/" . $this->sorter . "/" . $this->direction . "/";
-            // Count the number of images in query
-            $query = dbQuery('gallery\Image');
-            $rowsCount = $query->count();
-
-            // Create a new instance of Pager
-            $this->pager = new Pager($this->currentPage, $this->pageSize, $urlPrefix, $rowsCount);
-        }
         $this->fill();
     }
 }

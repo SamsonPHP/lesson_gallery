@@ -239,7 +239,7 @@ class Gallery extends \samson\core\CompressableExternalModule
 
 Now we have to move all vies from ```app/view/gallery``` to the ```src/gallery/www``` folder. All this views suppose to have ```.vphp``` extensions. And we have to remove ```gallery/``` from every call of views in the methods. And replace ```m()->``` to the ```$this->```.
 
-##Add Image and Collection entities
+##Buil Image and Collection entities
 
 We wan to build OOP module so we have to create ```src/Image.php```. 
 ```php
@@ -253,6 +253,9 @@ class Image extends \samson\activerecord\gallery
 }
 ```
 We will add some cool features to this entity later.
+
+### Collection
+
 We have to separate our module which will work with DB from controller which will interact with user. So let's create ```src/Collection.php``` to get the image collection from database.
 ```php
 <?php
@@ -306,7 +309,7 @@ class Collection extends Generic
         foreach ($query->exec() as $dbItem) {
 
             /*
-             * Render view(output method) and pass object received fron DB and
+             * Render view(output method) and pass object received from DB and
              * prefix all its fields with "image_", return and gather this outputs
              * in $items
              */
@@ -379,7 +382,7 @@ Now we have to modify our ```list``` action in ```src/Controller.php``` to use n
             /**@var \samson\activerecord\gallery $dbItem``` */
 
             /*
-             * Render view(output method) and pass object received fron DB and
+             * Render view(output method) and pass object received from DB and
              * prefix all its fields with "image_", return and gather this outputs
              * in $items
              */
@@ -397,3 +400,205 @@ Now we have to modify our ```list``` action in ```src/Controller.php``` to use n
     }
  ```
 
+### Image
+
+We have to remove all the functionality from ```Controller.php``` and create methods in ```Image.php``` entity which will provide same functionality. This how we will separate module and controller functions.
+First of all we have to create static method which will find DB record by id.
+```php
+namespace gallery;
+
+class Image extends \samson\activerecord\gallery
+{
+    /**
+     * @param $photoID
+     * @return Image
+     */
+    public static function byID($photoID)
+    {
+        return dbQuery('gallery\Image')->id($photoID)->first();
+    }
+}
+```
+Now we can find a record in the database without creation of Image instance. This function returns as an instance of Image in case in find the record with passed id and false if there is no record with such id.
+Now we can replace every ```if (dbQuery('gallery')->id($id)->first($dbItem))``` statement with ```if (false != ($dbItem = Image::byID($photoID)))```, so we call external method instead of execution of the query in the controller. So our ```__async_form``` controller will be changed to:
+```php
+    /**
+     * Gallery form controller action
+     * @var string $photoID Item identifier
+     * @return int status for asynchronous action
+     */
+    public function __async_form($photoID = null)
+    {
+        $result = array('status' => 1);
+        // Try to recieve one first record from DB by identifier,
+        if (false != ($dbItem = Image::byID($photoID))) {
+            // Render the form to redact item
+            $result['form'] = $this->view('/form/index')->title('Redact form')->image($dbItem)->form($this->view('/form/newfile')->output())->output();
+        } elseif (isset($photoID)) {
+            // File with passed ID wasn't find in DB
+            $result['form'] = $this->view('/form/notfoundID')->title('Not Found')->output();
+        } else {
+            // No ID was passed
+            $result['form'] = $this->view('/form/newfile')->image_PhotoID(0)->title('New Photo')->output();
+        }
+        return $result;
+    }
+```
+As we get installed ```samsonphp/upload``` module and using it for uploading the images we have to modify our ```newfile.vphp``` view and add ```PhotoID``` to the action, so we could track the id passed to the controller.
+```php
+<div class="upload_form">
+    <p>
+        <input type="hidden" class="__action" value="<?php url_base('gallery', 'upload', 'image_PhotoID', 'list', 'Loaded', 'DESC', '1'); ?>/">
+        <input type="hidden" class="__file_size" value="50000000">
+        <input class="__upload" type="file" name="uploadFile">
+    </p>
+</div>
+```
+
+Image extends ```\samson\activerecord\``` so it already have ```delete``` and save methods. We have to rebuild this methods to provide required functionality. Our ```delete``` method suppose do delete file from server and remove record about image in database. But if we want only to replace image we have to delete file from server.
+```php
+    /**
+     * @param bool $full if false delete only file from server
+     */
+    public function delete($full = true)
+    {
+        /**@var \samsonphp\fs\FileService $fs Pointer to file service */
+        $fsys = & m('fs');
+
+        // Get the real path to the image
+        $imgSrc = realpath(getcwd().$this->Src);
+
+        // If file exist delete this file from sever
+        if ($fsys->exists($imgSrc)) {
+
+            $fsys->delete($imgSrc);
+            if ($full) {
+                // Delete DB record about this file
+                parent::delete();
+            }
+        }
+    }
+```
+So we have to rebuild our ```__async_delete``` controller in ```Controller.php```.
+```php
+    /**
+     * Delete controller action
+     * @var string $PhotoID Item db identifier
+     * @return int status for asynchronous action
+     */
+    public function __async_delete($photoID)
+    {
+        $result = array('status' => 0);
+        /** @var \gallery\Image $dbItem */
+        if (false != ($dbItem = Image::byID($photoID))) {
+            // Delete image from server and remove DB record about this image
+            $dbItem->delete();
+            // Change the request status for successful asynchronous action
+            $result['status'] = 1;
+        }
+        return $result;
+    }
+```
+
+Now let's build our ```save``` method in ```Image.php``` so it could upload image to the server and place the record to the DB about this image.
+```php
+    /**
+     * @param \samsonphp\upload\Upload $upload
+     * @return bool|void
+     */
+    public function save(\samsonphp\upload\Upload $upload = null)
+    {
+        $result = false;
+        // If upload is successful return true
+        if (isset($upload) && $upload->upload($filePath, $fileName, $realName)) {
+            // Store the path to the uploaded file in the DB
+            $this->Src = $filePath;
+
+            // Save file size to the DB
+            $this->size = $upload->size();
+
+            // Save the original name of the picture in the DB for new image or leave old name
+            $this->Name = empty($this->Name) ? $realName : $this->Name;
+
+            $result = true;
+        }
+
+        // Execute the query
+        parent::save();
+
+        return $result;
+    }
+```
+Now we have to rebuild our ```__async_upload``` controller in ```Controller.php``` to use this method instead of db requests.
+```php
+    /**
+     * Upload controller action
+     * @return int status for asynchronous action
+     */
+    public function __async_upload($photoID = null)
+    {
+        // Create AJAX response array
+        $result = array('status' => 0);
+        
+        /*
+         * Try to receive one first record from DB by identifier,
+         * in case of success store record into $dbItem variable,
+         * delete old picture from server without deleting DB record.
+         * Otherwise create new instance of \gallery\Image
+         */
+        if (false != ($dbItem = Image::byID($photoID))) {
+            $dbItem->delete(false);
+        } else {
+            /** @var \gallery\Image $dbItem */
+            $dbItem = new Image(false);
+        }
+        /*
+         * Upload file to the server, in case of success
+         * set the request status to 1 for successful asynchronous action
+         */
+        if ($dbItem->save(new \samsonphp\upload\Upload(array('png', 'jpg', 'jpeg', 'gif')))) {
+
+            $result['status'] = 1;
+        }
+        return $result;
+    }
+```
+
+Let's create ```updateName``` method for ```__async_save``` controller. This controller now response only for image name.
+```php
+    public function updateName($name)
+    {
+        $this->Name = $name;
+
+        // Execute the query
+        parent::save();
+    }
+```
+And our ```__async_save``` controller now looks like:
+```php
+    /**
+     * Gallery save controller action
+     * @var string $PhotoID Item identifier
+     * @return int status for asynchronous action and view
+     */
+    public function __async_save()
+    {
+        $result = array('status' => 0);
+        // If we have really received form data
+        if (isset($_POST)) {
+            // Clear received variable
+            $photoID = isset($_POST['id']) ? filter_var($_POST['id']) : null;
+            /*
+             * Try to receive one first record from DB by identifier,
+             * in case of success store record into $dbItem variable.
+             */
+            if (false != ($dbItem = Image::byID($photoID))) {
+                // Update image name in DB
+                $dbItem->updateName(filter_var($_POST['name']));
+                // Change the request status for successful asynchronous action
+                $result = array('status' => 1);
+            }
+        }
+        return $result;
+    }
+```
