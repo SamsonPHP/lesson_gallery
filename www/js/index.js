@@ -8,16 +8,15 @@ s(document.body).pageInit(function(body){
 
 });
 
-function edit(btn){
+var edit = function(btn){
     btn.tinyboxAjax({
         // Set the response container name
         html : 'form',
         // Close tinybox on click elsewhere besides the box
         oneClickClose : true,
         renderedHandler : function(form, tb) {
-            var uploadForm = s('form', form);
+            uploadForm = s('form', form);
             uploadForm.ajaxSubmit(function(response){
-
                 // Call load function after uploading the file
                 load(response);
                 // Close tinybox
@@ -26,7 +25,7 @@ function edit(btn){
 
             /* Upload module support start */
             // Cache file input
-            var file = s('.__upload');
+            file = s('.__upload');
             // Bind upload event
             uploadFileHandler(file, {
                 // Handle event after upload finishing
@@ -58,11 +57,14 @@ function edit(btn){
 var load = function(response)
 {
     // Initialize variable
+    pager = s('#pager');
     form = s('.tinybox');
+
+    //s.trace(response);
 
     if (response && response.list) {
         s('.gallery-container').html(response.list);
-        s('#pager').html(response.pager);
+        pager.html(response.pager);
         s('#line1').html(response.sorter);
     }
     // Function suppose to call itself after every asynchronous action in the page
@@ -74,7 +76,7 @@ var load = function(response)
     // Call edit function after every asynchronous action in the page
     edit(s('.upload_btn'));
     edit(s('.edit'));
-}
+};
 //Call this function when page is loaded for the firs time
 s('#pager').pageInit(load);
 

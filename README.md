@@ -9,3 +9,4 @@ For successful learning you have to follow this instructions step by step:
 3. [Adding localization support.](/docs/i18n.md)
 4. [Make your gallery asynchronous](/docs/async.md)
 5. [Adding upload module](/docs/upload.md)
+6. [Create an external module on base of created gallery app](/docs/OOP%20approach.md)
