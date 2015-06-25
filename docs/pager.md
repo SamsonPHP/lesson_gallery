@@ -21,8 +21,12 @@ function gallery_list($sorter = null, $direction = 'ASC', $currentPage = 1, $pag
     if (!isset($sorter)) {
         // Load sorter from session if it is there
         $sorter = isset($_SESSION['sorter']) ? $_SESSION['sorter'] : null;
+    }
+    
+    if (!isset($direction)) {
         $direction = isset($_SESSION['direction']) ? $_SESSION['direction'] : null;
     }
+
 
     if (!isset($currentPage)) {
         // Load current page from session if it is there
